@@ -8,7 +8,12 @@ using System.Threading.Tasks;
 
 namespace ParserYoula
 {
-
+    public struct SearchAttributes
+    {
+        public string categories { get; set; }
+        public string subcategories { get; set; }
+        public string location { get; set; }
+    }
     public struct Product
     {
         public string Id { get; set; }
@@ -37,6 +42,14 @@ namespace ParserYoula
             }
         }
 
+
+        /// <summary>
+        /// Возвращает объявления с N-ой страницы
+        /// </summary>
+        /// <param name="priceFrom"></param>
+        /// <param name="priceTo"></param>
+        /// <param name="pageNumber"></param>
+        /// <returns></returns>
         public async IAsyncEnumerable<Product> GetProducts(int priceFrom, int priceTo, int pageNumber)
         {
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post,
@@ -84,8 +97,6 @@ namespace ParserYoula
                 if (isCorrect) yield return product;
 
             }
-
-            //return products;
         }
     }
     class Program
@@ -97,34 +108,5 @@ namespace ParserYoula
 
         }
 
-        private static async Task GetProducts()
-        {
-            var client = new RestClient();
-            var request = new RestRequest("https://api-gw.youla.io/federation/graphql", Method.Post);
-            request.AddHeader("Accept-Language", "ru-RU,ru;q=0.9");
-            request.AddHeader("Connection", "keep-alive");
-            request.AddHeader("Origin", "https://youla.ru");
-            request.AddHeader("Referer", "https://youla.ru/rostov-na-donu/zhivotnye/tovary?attributes%5Bprice%5D%5Bfrom%5D=200000&attributes%5Bsort_field%5D=date_published");
-            request.AddHeader("Sec-Fetch-Dest", "empty");
-            request.AddHeader("Sec-Fetch-Mode", "cors");
-            request.AddHeader("Sec-Fetch-Site", "cross-site");
-            request.AddHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36");
-            request.AddHeader("accept", "*/*");
-            request.AddHeader("appId", "web/3");
-            request.AddHeader("authorization", "");
-            request.AddHeader("content-type", "application/json");
-            request.AddHeader("sec-ch-ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"100\", \"Google Chrome\";v=\"100\"");
-            request.AddHeader("sec-ch-ua-mobile", "?0");
-            request.AddHeader("sec-ch-ua-platform", "\"Windows\"");
-            request.AddHeader("uid", "626f35c0911f7");
-            request.AddHeader("x-app-id", "web/3");
-            request.AddHeader("x-uid", "626f35c0911f7");
-            request.AddHeader("x-youla-splits", "8a=8|8b=1|8c=0|8m=0|8v=0|8z=0|16a=0|16b=0|64a=4|64b=0|100a=35|100b=9|100c=0|100d=0|100m=0");
-            var body = @"{""operationName"":""catalogProductsBoard"",""variables"":{""sort"":""DATE_PUBLISHED_DESC"",""attributes"":[{""slug"":""price"",""value"":null,""from"":200000,""to"":null},{""slug"":""sort_field"",""value"":null,""from"":null,""to"":null},{""slug"":""categories"",""value"":[""tovary""],""from"":null,""to"":null}],""datePublished"":null,""location"":{""latitude"":null,""longitude"":null,""city"":""576d0617d53f3d80945f952c"",""distanceMax"":null},""search"":"""",""cursor"":""""},""extensions"":{""persistedQuery"":{""version"":1,""sha256Hash"":""bf7a22ef077a537ba99d2fb892ccc0da895c8454ed70358c0c7a18f67c84517f""}}}";
-            request.AddParameter("application/json", body, ParameterType.RequestBody);
-            //request.AddBody()
-            var response = await client.ExecuteAsync(request);
-            Console.WriteLine(response.Content);
-        }
     }
 }
