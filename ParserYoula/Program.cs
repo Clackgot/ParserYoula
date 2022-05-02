@@ -45,11 +45,12 @@ namespace ParserYoula
 
         public async Task Run()
         {
-            //Console.WriteLine("Link:");
-            //string link = Console.ReadLine();
+            Console.WriteLine("Link:");
+            string link = Console.ReadLine();
 
             //string link = @"https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][from]=50000";
-            string link = @"https://youla.ru/novoorsk/zhivotnye?attributes[price][to]=100000000&attributes[price][from]=100";
+            //string link = @"https://youla.ru/novoorsk/zhivotnye?attributes[price][to]=100000000&attributes[price][from]=100";
+            //string link = @"https://youla.ru/novoorsk/zhivotnye/koshki";
 
 
             SearchAttributes result = await ParseParamsFromLink(link);
