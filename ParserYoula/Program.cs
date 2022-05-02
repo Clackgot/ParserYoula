@@ -1,18 +1,26 @@
 ﻿using Newtonsoft.Json.Linq;
-using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ParserYoula
 {
     public struct SearchAttributes
     {
-        public string categories { get; set; }
-        public string subcategories { get; set; }
-        public string location { get; set; }
+        public string categorySlug { get; set; }
+        public string subcategorySlug { get; set; }
+        public string locationId { get; set; }
+
+        public int? priceFrom { get; set; }
+        public int? priceTo { get; set; }
+        public override string ToString()
+        {
+            return $"{categorySlug} {subcategorySlug} {locationId} {priceFrom} - {priceTo}";
+        }
+
     }
     public struct Product
     {
@@ -36,13 +44,81 @@ namespace ParserYoula
 
         public async Task Run()
         {
-            await foreach (var item in GetProducts(2000, 5000, 1))
-            {
-                Console.WriteLine(item);
-            }
+            //await foreach (var item in GetProducts(2000, 5000, 1))
+            //{
+            //    Console.WriteLine(item);
+            //}
+            //var searchAttributes = await ParseSearchParams("https://youla.ru/novoorsk/zhivotnye/gryzuny");
+            var searchAttributes = await ParseParamsFromLink("https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][to]=570000&attributes[price][from]=335000");
+            Console.WriteLine(searchAttributes);
         }
 
 
+        public async Task<SearchAttributes> ParseParamsFromLink(string link)
+        {
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get,
+                new Uri(link));
+            request.Headers.Add("Accept-Language", "ru-RU,ru;q=0.9");
+            request.Headers.Add("Connection", "keep-alive");
+            request.Headers.Add("Origin", "https://youla.ru");
+            request.Headers.Add("Referer", link);
+            request.Headers.Add("Sec-Fetch-Dest", "document");
+            request.Headers.Add("Sec-Fetch-Mode", "navigate");
+            request.Headers.Add("Sec-Fetch-Site", "same-origin");
+            request.Headers.Add("Sec-Fetch-User", "?1");
+            request.Headers.Add("Upgrade-Insecure-Requests", "1");
+            request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36");
+            request.Headers.Add("accept", "*/*");
+            request.Headers.Add("appId", "web/3");
+            //request.Headers.Add("authorization", "");
+            request.Headers.Add("sec-ch-ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"100\", \"Google Chrome\";v=\"100\"");
+            request.Headers.Add("sec-ch-ua-mobile", "?0");
+            request.Headers.Add("sec-ch-ua-platform", "\"Windows\"");
+            HttpResponseMessage result = client.SendAsync(request).Result;
+            string document = await result.Content.ReadAsStringAsync();
+
+
+            Regex regex = new Regex(@"window.__YOULA_STATE__ = (.*?);$", RegexOptions.Multiline | RegexOptions.Multiline);
+
+
+
+            Match match = regex.Match(document);
+            string jsonText = match.Groups[1].Value;
+
+            var jsonConverter = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonText);
+
+            byte[] bytes = Encoding.Default.GetBytes(jsonConverter.ToString());
+            jsonText = Encoding.UTF8.GetString(bytes);
+
+
+            SearchAttributes searchAttributes = new SearchAttributes();
+
+            JObject json = JObject.Parse(jsonText);
+
+            try { searchAttributes.categorySlug = json["data"]["routeParams"]["categorySlug"].ToString(); } catch { };
+            try
+            {
+                searchAttributes.subcategorySlug = json["data"]["routeParams"]["subcategorySlug"].ToString();
+            }
+            catch { };
+            try
+            {
+                searchAttributes.locationId = json["entities"]["cities"][0]["id"].ToString();
+            }
+            catch { };
+            try
+            {
+                searchAttributes.priceFrom = int.Parse(json["data"]["requestParams"]["attributes"]["price"]["from"].ToString()) / 100;
+            }
+            catch { };
+            try { searchAttributes.priceTo = int.Parse(json["data"]["requestParams"]["attributes"]["price"]["to"].ToString()) / 100; } catch { };
+            //Console.WriteLine(categorySlug);
+            //Console.WriteLine(subcategorySlug);
+            //Console.WriteLine(locationId);
+
+
+            return searchAttributes;
+        }
         /// <summary>
         /// Возвращает объявления с N-ой страницы
         /// </summary>
@@ -95,7 +171,6 @@ namespace ParserYoula
                     isCorrect = false;
                 }
                 if (isCorrect) yield return product;
-
             }
         }
     }
