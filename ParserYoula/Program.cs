@@ -32,7 +32,7 @@ namespace ParserYoula
 
         public override string ToString()
         {
-            return $"{Id} {OwnerId} {Name} \tЦена:{Price / 100} руб. \tОтзывов:{MarksCount}";
+            return $"{Id}\t {OwnerId}\t {Name}\t {Price / 100} руб.\t {MarksCount}";
         }
     }
     class Parser
@@ -45,10 +45,17 @@ namespace ParserYoula
 
         public async Task Run()
         {
-            await foreach (var item in GetProducts(new SearchAttributes()))
+            //Console.WriteLine("Link:");
+            string link = @"https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][from]=50000";
+            SearchAttributes result = await ParseParamsFromLink(link);
+            //Console.WriteLine($"[{result.categorySlug}][{result.subcategorySlug}]");
+            //Console.WriteLine($"{result.priceFrom}");
+            Console.WriteLine("ID\t OwnerID\t Name\t Price\t Marks\t");
+            await foreach (var item in GetProducts(result))
             {
                 Console.WriteLine(item);
             }
+
             //var searchAttributes = await ParseSearchParams("https://youla.ru/novoorsk/zhivotnye/gryzuny");
             //var searchAttributes = await ParseParamsFromLink("https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][to]=570000&attributes[price][from]=335000");
             //Console.WriteLine(searchAttributes);
@@ -82,7 +89,7 @@ namespace ParserYoula
             request.Headers.Add("sec-ch-ua-mobile", "?0");
             request.Headers.Add("sec-ch-ua-platform", "\"Windows\"");
             HttpResponseMessage result = client.SendAsync(request).Result;
-            string document = await result.Content.ReadAsStringAsync(); 
+            string document = await result.Content.ReadAsStringAsync();
             #endregion
 
             #region Получение Json содержимого из HTML
@@ -106,7 +113,7 @@ namespace ParserYoula
             try { searchAttributes.subcategorySlug = json["data"]["routeParams"]["subcategorySlug"].ToString(); } catch { };
             try { searchAttributes.locationId = json["entities"]["cities"][0]["id"].ToString(); } catch { };
             try { searchAttributes.priceFrom = int.Parse(json["data"]["requestParams"]["attributes"]["price"]["from"].ToString()) / 100; } catch { };
-            try { searchAttributes.priceTo = int.Parse(json["data"]["requestParams"]["attributes"]["price"]["to"].ToString()) / 100; } catch { }; 
+            try { searchAttributes.priceTo = int.Parse(json["data"]["requestParams"]["attributes"]["price"]["to"].ToString()) / 100; } catch { };
             #endregion
 
             return searchAttributes;
@@ -120,7 +127,7 @@ namespace ParserYoula
         /// <returns></returns>
         public async IAsyncEnumerable<Product> GetProducts(SearchAttributes searchAttributes)
         {
-            
+
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post,
         new Uri("https://api-gw.youla.io/federation/graphql"));
 
@@ -149,8 +156,45 @@ namespace ParserYoula
             #region Тело запроса
             string requestBodyJsonText = @"{""operationName"":""catalogProductsBoard"",""variables"":{""sort"":""DEFAULT"",""attributes"":[{""slug"":""price"",""value"":null,""from"":123400,""to"":567800},{""slug"":""categories"",""value"":[""zhivotnye""],""from"":null,""to"":null}],""datePublished"":null,""location"":{""latitude"":null,""longitude"":null,""city"":""576d0617d53f3d80945f9428"",""distanceMax"":null},""search"":"""",""cursor"":""""},""extensions"":{""persistedQuery"":{""version"":1,""sha256Hash"":""bf7a22ef077a537ba99d2fb892ccc0da895c8454ed70358c0c7a18f67c84517f""}}}";
             JObject requestBodyJson = JObject.Parse(requestBodyJsonText);
-            requestBodyJson["variables"]["attributes"][0]["from"] = "0";
-            requestBodyJson["variables"]["attributes"][0]["to"] = "1000";
+            try
+            {
+                requestBodyJson["variables"]["attributes"][0]["from"] = searchAttributes.priceFrom * 100;
+                requestBodyJson["variables"]["attributes"][0]["to"] = searchAttributes.priceTo * 100;
+            }
+            catch
+            {
+                Console.WriteLine("Не удалось задать цену запроса");
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(searchAttributes.subcategorySlug))
+                {
+                    //requestBodyJson["variables"]["attributes"][1]["value"] = "1000";
+                    requestBodyJson["variables"]["attributes"][1]["value"][0] = searchAttributes.subcategorySlug;
+                }
+                else
+                {
+                    requestBodyJson["variables"]["attributes"][1]["value"][0] = searchAttributes.categorySlug;
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Не удалось задать категории");
+            }
+
+
+
+            try
+            {
+                requestBodyJson["variables"]["location"]["city"] = searchAttributes.locationId;
+            }
+            catch
+            {
+                Console.WriteLine("Не удалось задать город запроса");
+            }
+
+
             StringContent content = new StringContent(requestBodyJson.ToString(), Encoding.UTF8, "application/json");
             request.Content = content;
             #endregion
@@ -159,7 +203,7 @@ namespace ParserYoula
             #region Ответ на запрос
             HttpResponseMessage result = client.SendAsync(request).Result;
             string jsonResponseText = await result.Content.ReadAsStringAsync();
-            JObject jsonResponse = JObject.Parse(jsonResponseText); 
+            JObject jsonResponse = JObject.Parse(jsonResponseText);
             #endregion
 
             foreach (JToken item in jsonResponse["data"]["feed"]["items"])
@@ -206,10 +250,8 @@ namespace ParserYoula
         static void Main(string[] args)
         {
             Parser parser = new Parser();
-            //parser.Run().Wait();
-            Console.WriteLine("Link:");
-            SearchAttributes result = parser.ParseParamsFromLink(Console.ReadLine()).GetAwaiter().GetResult();
-            Console.WriteLine($"[{string.IsNullOrEmpty(result.categorySlug)}][{string.IsNullOrEmpty(result.subcategorySlug)}]");
+            parser.Run().Wait();
+
         }
     }
 }
