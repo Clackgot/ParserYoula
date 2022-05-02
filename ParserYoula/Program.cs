@@ -27,6 +27,7 @@ namespace ParserYoula
         public string Id { get; set; }
         public string OwnerId { get; set; }
         public string Name { get; set; }
+        public string Description { get; set; }
         public int? Price { get; set; }
         public int? MarksCount { get; set; }
 
@@ -73,11 +74,59 @@ namespace ParserYoula
                 IAsyncEnumerable<Product> products = GetProducts(searchAttributes, page);
                 await foreach (Product item in products)
                 {
-                    yield return item;
+                    yield return await GetProductInfo(item);
                     isEmpty = false;
                 }
                 page++;
             }
+        }
+
+
+        public async Task<Product> GetProductInfo(Product product)
+        {
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get,
+        new Uri($"https://api.youla.io/api/v1/product/{product.Id}"));
+
+            #region Заголовки запроса
+            request.Headers.Add("Accept-Language", "ru-RU,ru;q=0.9");
+            request.Headers.Add("Connection", "keep-alive");
+            request.Headers.Add("Origin", "https://youla.ru");
+            request.Headers.Add("Referer", "https://youla.ru");
+            request.Headers.Add("Sec-Fetch-Dest", "empty");
+            request.Headers.Add("Sec-Fetch-Mode", "cors");
+            request.Headers.Add("Sec-Fetch-Site", "cross-site");
+            request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36");
+            request.Headers.Add("accept", "*/*");
+            request.Headers.Add("appId", "web/3");
+            request.Headers.Add("sec-ch-ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"100\", \"Google Chrome\";v=\"100\"");
+            request.Headers.Add("sec-ch-ua-mobile", "?0");
+            request.Headers.Add("sec-ch-ua-platform", "\"Windows\"");
+            #endregion
+
+
+            #region Ответ на запрос
+            HttpResponseMessage result = client.SendAsync(request).Result;
+            string jsonResponseText = await result.Content.ReadAsStringAsync();
+            JObject jsonResponse = JObject.Parse(jsonResponseText);
+            try
+            {
+                product.OwnerId = jsonResponse["data"]["owner"]["id"].ToString();
+                int marksCount;
+                if(int.TryParse(jsonResponse["data"]["owner"]["rating_mark_cnt"].ToString(), out marksCount))
+                {
+                    product.MarksCount = marksCount;
+                }
+                else
+                {
+                    product.MarksCount = null;
+                }
+                product.Description = jsonResponse["data"]["description"].ToString();
+            }
+            catch { };
+            #endregion
+
+
+            return product;
         }
 
 
@@ -299,7 +348,6 @@ namespace ParserYoula
         {
             Parser parser = new Parser();
             parser.Run().Wait();
-
         }
     }
 }
