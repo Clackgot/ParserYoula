@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ParserYoula
 {
-    
+
     public struct Product
     {
         public string Id { get; set; }
@@ -29,7 +29,15 @@ namespace ParserYoula
 
         }
 
-        public async Task<List<Product>> GetProducts(int priceFrom, int priceTo, int pageNumber)
+        public async Task Run()
+        {
+            await foreach (var item in GetProducts(2000, 5000, 1))
+            {
+                Console.WriteLine(item);
+            }
+        }
+
+        public async IAsyncEnumerable<Product> GetProducts(int priceFrom, int priceTo, int pageNumber)
         {
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post,
                 new Uri("https://api-gw.youla.io/federation/graphql"));
@@ -62,15 +70,22 @@ namespace ParserYoula
             List<Product> products = new List<Product>();
             foreach (JToken item in jsonResponse["data"]["feed"]["items"])
             {
+                Product product = new Product();
+                bool isCorrect = true;
                 try
                 {
                     string id = item["product"]["id"].ToString();
-                    products.Add(new Product() { Id = id });
+                    product.Id = id;
                 }
-                catch { }
+                catch
+                {
+                    isCorrect = false;
+                }
+                if (isCorrect) yield return product;
+
             }
 
-            return products;
+            //return products;
         }
     }
     class Program
@@ -78,10 +93,7 @@ namespace ParserYoula
         static void Main(string[] args)
         {
             Parser parser = new Parser();
-            foreach (var item in parser.GetProducts(2000, 5000, 1).GetAwaiter().GetResult())
-            {
-                Console.WriteLine(item);
-            }
+            parser.Run().Wait();
 
         }
 
