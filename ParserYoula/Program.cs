@@ -46,19 +46,37 @@ namespace ParserYoula
         public async Task Run()
         {
             //Console.WriteLine("Link:");
-            string link = @"https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][from]=50000";
+            //string link = Console.ReadLine();
+
+            //string link = @"https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][from]=50000";
+            string link = @"https://youla.ru/novoorsk/zhivotnye?attributes[price][to]=100000000&attributes[price][from]=100";
+
+
             SearchAttributes result = await ParseParamsFromLink(link);
-            //Console.WriteLine($"[{result.categorySlug}][{result.subcategorySlug}]");
-            //Console.WriteLine($"{result.priceFrom}");
-            Console.WriteLine("ID\t OwnerID\t Name\t Price\t Marks\t");
-            await foreach (var item in GetProducts(result))
+
+            await foreach (var product in GetAllProducts(result))
             {
-                Console.WriteLine(item);
+                Console.WriteLine(product);
             }
 
-            //var searchAttributes = await ParseSearchParams("https://youla.ru/novoorsk/zhivotnye/gryzuny");
-            //var searchAttributes = await ParseParamsFromLink("https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][to]=570000&attributes[price][from]=335000");
-            //Console.WriteLine(searchAttributes);
+        }
+
+        public async IAsyncEnumerable<Product> GetAllProducts(SearchAttributes searchAttributes)
+        {
+            Console.WriteLine("ID\t OwnerID\t Name\t Price\t Marks\t");
+            int page = 0;
+            bool isEmpty = false;
+            while (!isEmpty)
+            {
+                isEmpty = true;
+                IAsyncEnumerable<Product> products = GetProducts(searchAttributes, page);
+                await foreach (Product item in products)
+                {
+                    yield return item;
+                    isEmpty = false;
+                }
+                page++;
+            }
         }
 
 
@@ -125,7 +143,7 @@ namespace ParserYoula
         /// <param name="priceTo"></param>
         /// <param name="pageNumber"></param>
         /// <returns></returns>
-        public async IAsyncEnumerable<Product> GetProducts(SearchAttributes searchAttributes)
+        public async IAsyncEnumerable<Product> GetProducts(SearchAttributes searchAttributes, int pageNumber)
         {
 
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post,
@@ -156,8 +174,35 @@ namespace ParserYoula
             #region Тело запроса
             string requestBodyJsonText = @"{""operationName"":""catalogProductsBoard"",""variables"":{""sort"":""DEFAULT"",""attributes"":[{""slug"":""price"",""value"":null,""from"":123400,""to"":567800},{""slug"":""categories"",""value"":[""zhivotnye""],""from"":null,""to"":null}],""datePublished"":null,""location"":{""latitude"":null,""longitude"":null,""city"":""576d0617d53f3d80945f9428"",""distanceMax"":null},""search"":"""",""cursor"":""""},""extensions"":{""persistedQuery"":{""version"":1,""sha256Hash"":""bf7a22ef077a537ba99d2fb892ccc0da895c8454ed70358c0c7a18f67c84517f""}}}";
             JObject requestBodyJson = JObject.Parse(requestBodyJsonText);
+
+
+            #region Номер страницы
             try
             {
+                if (pageNumber <= 0)
+                {
+                    requestBodyJson["variables"]["cursor"] = "";
+                }
+                else
+                {
+                    var cursor = "{\"page\":0,\"totalProductsCount\":30,\"totalPremiumProductsCount\":0,\"dateUpdatedTo\":1651519522}";
+                    var cursorJson = JObject.Parse(cursor);
+                    cursorJson["page"] = pageNumber - 1;
+                    //Console.WriteLine(cursorJson);
+                    requestBodyJson["variables"]["cursor"] = cursorJson.ToString();
+                }
+            }
+            catch
+            {
+                Console.WriteLine("Не удалось задать страницу");
+            }
+            #endregion
+
+
+            #region Ценовой диапазон
+            try
+            {
+
                 requestBodyJson["variables"]["attributes"][0]["from"] = searchAttributes.priceFrom * 100;
                 requestBodyJson["variables"]["attributes"][0]["to"] = searchAttributes.priceTo * 100;
             }
@@ -165,7 +210,9 @@ namespace ParserYoula
             {
                 Console.WriteLine("Не удалось задать цену запроса");
             }
+            #endregion
 
+            #region Категории
             try
             {
                 if (!string.IsNullOrEmpty(searchAttributes.subcategorySlug))
@@ -182,9 +229,9 @@ namespace ParserYoula
             {
                 Console.WriteLine("Не удалось задать категории");
             }
+            #endregion
 
-
-
+            #region Город
             try
             {
                 requestBodyJson["variables"]["location"]["city"] = searchAttributes.locationId;
@@ -193,7 +240,7 @@ namespace ParserYoula
             {
                 Console.WriteLine("Не удалось задать город запроса");
             }
-
+            #endregion
 
             StringContent content = new StringContent(requestBodyJson.ToString(), Encoding.UTF8, "application/json");
             request.Content = content;
