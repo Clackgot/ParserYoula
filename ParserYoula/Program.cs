@@ -79,8 +79,16 @@ namespace ParserYoula
 
             YoulaDataBase dataBase = new YoulaDataBase("profiles.db");
             dataBase.Create();
-            dataBase.AddProducts(products);
+            List<Product> addedProducts = dataBase.AddProducts(products);
 
+            if (!string.IsNullOrEmpty(result.subcategorySlug))
+            {
+                Save(addedProducts, result.subcategorySlug);
+            }
+            else
+            {
+                Save(addedProducts, result.categorySlug);
+            }
 
         }
 
@@ -502,8 +510,9 @@ namespace ParserYoula
             //AddProductsData();
         }
 
-        public void AddProducts(List<Product> products)
+        public List<Product> AddProducts(List<Product> products)
         {
+            List<Product> addedProducts = new List<Product>();
             Stopwatch sw = new Stopwatch();
             sw.Restart();
             command.CommandText = "INSERT or IGNORE INTO products (productId, ownerId, description, price, marks) VALUES (:productId, :ownerId, :description, :price, :marks)";
@@ -517,8 +526,9 @@ namespace ParserYoula
                     command.Parameters.AddWithValue("description", product.Description);
                     command.Parameters.AddWithValue("price", product.Price);
                     command.Parameters.AddWithValue("marks", product.MarksCount);
-                    command.ExecuteNonQuery();
                     
+                    bool isAdded = Convert.ToBoolean(command.ExecuteNonQuery());
+                    if (isAdded) addedProducts.Add(product);
                 }
                 transaction.Commit();
                 
@@ -531,6 +541,7 @@ namespace ParserYoula
                 Console.WriteLine(e.Message);
                 throw;
             }
+            return addedProducts;
         }
 
 
