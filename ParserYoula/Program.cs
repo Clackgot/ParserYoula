@@ -55,7 +55,7 @@ namespace ParserYoula
 
         public async Task Run()
         {
-            Console.WriteLine("Link:");
+            Console.WriteLine("Ссылка:");
             string link = Console.ReadLine();
 
             //string link = @"https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][from]=50000";
@@ -68,6 +68,7 @@ namespace ParserYoula
             await foreach (var product in GetAllProducts(result))
             {
                 products.Add(product);
+                Console.WriteLine($"Найдено {products.Count} объявлений");
             }
             //if (!string.IsNullOrEmpty(result.subcategorySlug))
             //{
@@ -97,10 +98,6 @@ namespace ParserYoula
         private static void Save(List<Product> products, string listName)
         {
             var package = new ExcelPackage();
-            Console.WriteLine($"До: {products.Count}");
-            products = products.Where(m => m.MarksCount < 3).ToList();
-            Console.WriteLine($"После: {products.Count}");
-
 
             var sheet = package.Workbook.Worksheets.Add(listName);
             sheet.Cells[1, 1].Value = "Ссылка";
@@ -126,7 +123,6 @@ namespace ParserYoula
 
         public async IAsyncEnumerable<Product> GetAllProducts(SearchAttributes searchAttributes)
         {
-            Console.WriteLine("ID\t OwnerID\t Name\t Price\t Marks\t");
             int page = 0;
             bool isEmpty = false;
             while (!isEmpty)
@@ -461,12 +457,10 @@ namespace ParserYoula
 
                 if (newDB)
                 {
-                    command.CommandText = @"CREATE TABLE products (id	INTEGER NOT NULL UNIQUE, productId	TEXT NOT NULL UNIQUE,ownerId	TEXT NOT NULL UNIQUE,description	TEXT,price	INTEGER,marks	INTEGER,PRIMARY KEY(id AUTOINCREMENT))";
+                    command.CommandText = @"CREATE TABLE products (id	INTEGER NOT NULL UNIQUE, productId	TEXT NOT NULL UNIQUE,ownerId	TEXT NOT NULL UNIQUE,description	TEXT,price	INTEGER,marks INTEGER check(marks >= 0 and marks <= 2),PRIMARY KEY(id AUTOINCREMENT))";
                     command.ExecuteNonQuery();
                     AddTestData();
                 }
-
-                Console.WriteLine("Connected");
             }
             catch (SQLiteException ex)
             {
@@ -477,8 +471,6 @@ namespace ParserYoula
 
         private void AddProductsData()
         {
-            Stopwatch sw = new Stopwatch();
-            sw.Restart();
             command.CommandText = "INSERT INTO products (productId, ownerId, description, price, marks) VALUES (:productId, :ownerId, :description, :price, :marks)";
             SQLiteTransaction transaction = connection.BeginTransaction();//запускаем транзакцию
             try
@@ -493,8 +485,6 @@ namespace ParserYoula
                     command.ExecuteNonQuery();
                 }
                 transaction.Commit();
-                sw.Stop();
-                Console.WriteLine($"products заполнен за {sw.Elapsed}");
             }
             catch (Exception e)
             {
@@ -513,8 +503,6 @@ namespace ParserYoula
         public List<Product> AddProducts(List<Product> products)
         {
             List<Product> addedProducts = new List<Product>();
-            Stopwatch sw = new Stopwatch();
-            sw.Restart();
             command.CommandText = "INSERT or IGNORE INTO products (productId, ownerId, description, price, marks) VALUES (:productId, :ownerId, :description, :price, :marks)";
             SQLiteTransaction transaction = connection.BeginTransaction();//запускаем транзакцию
             try
@@ -531,9 +519,6 @@ namespace ParserYoula
                     if (isAdded) addedProducts.Add(product);
                 }
                 transaction.Commit();
-                
-                sw.Stop();
-                Console.WriteLine($"products заполнен за {sw.Elapsed}");
             }
             catch (Exception e)
             {
@@ -541,6 +526,9 @@ namespace ParserYoula
                 Console.WriteLine(e.Message);
                 throw;
             }
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"Найдено новых объявлений: {addedProducts.Count}");
+            Console.ForegroundColor = ConsoleColor.Gray;
             return addedProducts;
         }
 
