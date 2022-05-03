@@ -11,6 +11,37 @@ using System.Threading.Tasks;
 namespace ParserYoula
 {
 
+    public struct SearchAttributes
+    {
+        public string categorySlug { get; set; }
+        public string subcategorySlug { get; set; }
+        public string locationId { get; set; }
+
+        public int? priceFrom { get; set; }
+        public int? priceTo { get; set; }
+        public override string ToString()
+        {
+            return $"{categorySlug} {subcategorySlug} {locationId} {priceFrom} - {priceTo}";
+        }
+
+    }
+    public struct Product
+    {
+        public string Id { get; set; }
+        public string OwnerId { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public int? Price { get; set; }
+        public int? MarksCount { get; set; }
+
+        public bool IsShop { get; set; }
+
+        public override string ToString()
+        {
+            return $"{Id}\t {OwnerId}\t {Name}\t {Price / 100} руб.\t {MarksCount}";
+        }
+    }
+
     class ParserEventArgs : EventArgs
     {
         public List<Product> Products { get; set; }
@@ -36,8 +67,9 @@ namespace ParserYoula
             //Вызываем событие завершения проверки
             ParseCompleted.Invoke(this, new ParserEventArgs()
             {
-                SearchAttributes = new SearchAttributes() { 
-                    categorySlug = searchAttrubutes.categorySlug, 
+                SearchAttributes = new SearchAttributes()
+                {
+                    categorySlug = searchAttrubutes.categorySlug,
                     subcategorySlug = searchAttrubutes.subcategorySlug,
                     priceFrom = searchAttrubutes.priceFrom,
                     priceTo = searchAttrubutes.priceTo,
@@ -76,12 +108,25 @@ namespace ParserYoula
             //string link = @"https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][from]=50000";
             //string link = @"https://youla.ru/novoorsk/zhivotnye?attributes[price][to]=100000000&attributes[price][from]=100";
             //string link = @"https://youla.ru/novoorsk/zhivotnye/koshki";
-            searchAttrubutes = await ParseParamsFromLink(link);
 
+            while (true)
+            {
+                try
+                {
+                    searchAttrubutes = await ParseParamsFromLink(link);
+                }
+                catch
+                {
+                    Console.WriteLine("Не удалось получить информацию из ссылки. Повторная попытка через 5 секунд");
+                    await Task.Delay(5000);
+                    continue;
+                }
+                break;
+            }
             await foreach (var product in GetAllProducts(searchAttrubutes))
             {
                 products.Add(product);
-                Console.WriteLine($"{product.Name}");
+                Console.WriteLine($"{product.IsShop}");
             }
 
             //if (!string.IsNullOrEmpty(result.subcategorySlug))
@@ -120,7 +165,7 @@ namespace ParserYoula
                     SaveToExcel(addedProducts, result.categorySlug);
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine("Ошибка сохранения.");
                 Console.WriteLine(e.Message);
@@ -207,6 +252,7 @@ namespace ParserYoula
             {
                 product.OwnerId = jsonResponse["data"]["owner"]["id"].ToString();
                 int marksCount;
+                bool isShop;
                 if (int.TryParse(jsonResponse["data"]["owner"]["rating_mark_cnt"].ToString(), out marksCount))
                 {
                     product.MarksCount = marksCount;
@@ -216,6 +262,7 @@ namespace ParserYoula
                     product.MarksCount = null;
                 }
                 product.Description = jsonResponse["data"]["description"].ToString();
+                Console.WriteLine($"[{jsonResponse["data"]["owner"]["isShop"]}]");
             }
             catch { };
             #endregion
@@ -263,10 +310,16 @@ namespace ParserYoula
             #endregion
 
             #region Декодирование Юникода
-            var jsonConverter = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonText);
+            try
+            {
+                var jsonConverter = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonText);
+                byte[] bytes = Encoding.Default.GetBytes(jsonConverter.ToString());
+                jsonText = Encoding.UTF8.GetString(bytes);
+            }
+            catch
+            {
 
-            byte[] bytes = Encoding.Default.GetBytes(jsonConverter.ToString());
-            jsonText = Encoding.UTF8.GetString(bytes);
+            }
             #endregion
 
             #region Парсинг атрибутов из JSON
@@ -401,25 +454,32 @@ namespace ParserYoula
             foreach (JToken item in jsonResponse["data"]["feed"]["items"])
             {
                 Product product = new Product();
-                bool isCorrect = true;
-                try
+                bool isCorrect = false;
+
+                if (JObject.Parse(item.ToString()).TryGetValue("product", out JToken productToken))
                 {
-                    string id = item["product"]["id"].ToString();
-                    product.Id = id;
+                    JObject productJObject = JObject.Parse(productToken.ToString());
+
+                    if (JObject.Parse(productJObject.ToString()).TryGetValue("id", out JToken idToken))
+                    {
+                        JObject idJObject = JObject.Parse(idToken.ToString());
+                        product.Id = idJObject.ToString();
+                        isCorrect = true;
+                    }
+
+                    if (JObject.Parse(productJObject.ToString()).TryGetValue("name", out JToken nameToken))
+                    {
+                        JObject nameJObject = JObject.Parse(nameToken.ToString());
+                        product.Name = nameJObject.ToString();
+                        isCorrect = true;
+                    }
                 }
-                catch
+                else
                 {
                     isCorrect = false;
                 }
-                try
-                {
-                    string name = item["product"]["name"].ToString();
-                    product.Name = name;
-                }
-                catch
-                {
-                    isCorrect = false;
-                }
+
+
                 try
                 {
                     string realPrice = item["product"]["price"]["realPrice"]["price"].ToString();
