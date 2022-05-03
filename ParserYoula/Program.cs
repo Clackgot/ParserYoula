@@ -57,12 +57,6 @@ namespace ParserYoula
         {
             Console.WriteLine("Ссылка:");
             string link = Console.ReadLine();
-
-            //string link = @"https://youla.ru/novoorsk/zhivotnye/gryzuny?attributes[price][from]=50000";
-            //string link = @"https://youla.ru/novoorsk/zhivotnye?attributes[price][to]=100000000&attributes[price][from]=100";
-            //string link = @"https://youla.ru/novoorsk/zhivotnye/koshki";
-
-
             SearchAttributes result = await ParseParamsFromLink(link);
             List<Product> products = new List<Product>();
             await foreach (var product in GetAllProducts(result))
@@ -70,14 +64,7 @@ namespace ParserYoula
                 products.Add(product);
                 Console.WriteLine($"Найдено {products.Count} объявлений");
             }
-            //if (!string.IsNullOrEmpty(result.subcategorySlug))
-            //{
-            //    Save(products, result.subcategorySlug);
-            //}
-            //else
-            //{
-            //    Save(products, result.categorySlug);
-            //}
+
 
             YoulaDataBase dataBase = new YoulaDataBase("profiles.db");
             dataBase.Create();
