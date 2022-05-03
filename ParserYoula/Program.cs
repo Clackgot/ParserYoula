@@ -44,6 +44,9 @@ namespace ParserYoula
     class Parser
     {
         private HttpClient client = new HttpClient();
+        private YoulaDataBase db = new YoulaDataBase("data.db");
+
+
         public Parser()
         {
 
@@ -65,14 +68,19 @@ namespace ParserYoula
             {
                 products.Add(product);
             }
-            if (!string.IsNullOrEmpty(result.subcategorySlug))
-            {
-                Save(products, result.subcategorySlug);
-            }
-            else
-            {
-                Save(products, result.categorySlug);
-            }
+            //if (!string.IsNullOrEmpty(result.subcategorySlug))
+            //{
+            //    Save(products, result.subcategorySlug);
+            //}
+            //else
+            //{
+            //    Save(products, result.categorySlug);
+            //}
+
+            YoulaDataBase dataBase = new YoulaDataBase("profiles.db");
+            dataBase.Create();
+            dataBase.AddProducts(products);
+
 
         }
 
@@ -491,12 +499,38 @@ namespace ParserYoula
 
         private void AddTestData()
         {
-            AddProductsData();
+            //AddProductsData();
         }
 
         public void AddProducts(List<Product> products)
         {
-
+            Stopwatch sw = new Stopwatch();
+            sw.Restart();
+            command.CommandText = "INSERT or IGNORE INTO products (productId, ownerId, description, price, marks) VALUES (:productId, :ownerId, :description, :price, :marks)";
+            SQLiteTransaction transaction = connection.BeginTransaction();//запускаем транзакцию
+            try
+            {
+                foreach (var product in products)
+                {
+                    command.Parameters.AddWithValue("productId", product.Id);
+                    command.Parameters.AddWithValue("ownerId", product.OwnerId);
+                    command.Parameters.AddWithValue("description", product.Description);
+                    command.Parameters.AddWithValue("price", product.Price);
+                    command.Parameters.AddWithValue("marks", product.MarksCount);
+                    command.ExecuteNonQuery();
+                    
+                }
+                transaction.Commit();
+                
+                sw.Stop();
+                Console.WriteLine($"products заполнен за {sw.Elapsed}");
+            }
+            catch (Exception e)
+            {
+                transaction.Rollback();
+                Console.WriteLine(e.Message);
+                throw;
+            }
         }
 
 
@@ -524,8 +558,8 @@ namespace ParserYoula
     {
         static void Main(string[] args)
         {
-            //Parser parser = new Parser();
-            //parser.Run().Wait();
+            Parser parser = new Parser();
+            parser.Run().Wait();
 
             //if (Connect("firstBase.db"))
             //{
@@ -533,9 +567,7 @@ namespace ParserYoula
             //}
 
 
-            YoulaDataBase dataBase = new YoulaDataBase("profiles.db");
-            dataBase.Create();
-            dataBase.PrintProducts();
+
 
 
         }
