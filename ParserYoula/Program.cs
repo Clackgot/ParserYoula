@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace ParserYoula
 {
@@ -96,25 +97,24 @@ namespace ParserYoula
         private static void Save(List<Product> products, string listName)
         {
             var package = new ExcelPackage();
+            Console.WriteLine($"До: {products.Count}");
+            products = products.Where(m => m.MarksCount < 3).ToList();
+            Console.WriteLine($"После: {products.Count}");
+
 
             var sheet = package.Workbook.Worksheets.Add(listName);
-            sheet.Cells[1, 1].Value = "Объявление";
-            sheet.Cells[1, 2].Value = "Владелец";
+            sheet.Cells[1, 1].Value = "Ссылка";
+            sheet.Cells[1, 2].Value = "Название";
             sheet.Cells[1, 3].Value = "Описание";
-            sheet.Cells[1, 4].Value = "Отзывов";
-            sheet.Cells[1, 5].Value = "Название";
-            sheet.Cells[1, 6].Value = "Цена";
+
             int row = 2;
             int col = 1;
 
             foreach (var product in products)
             {
                 sheet.Cells[row, col].Value = $"https://youla.ru/p{product.Id}";
-                sheet.Cells[row, col + 1].Value = $"https://youla.ru/user/{product.OwnerId}";
+                sheet.Cells[row, col + 1].Value = product.Name;
                 sheet.Cells[row, col + 2].Value = product.Description.Trim();
-                sheet.Cells[row, col + 3].Value = product.MarksCount;
-                sheet.Cells[row, col + 4].Value = product.Name;
-                sheet.Cells[row, col + 5].Value = product.Price;
                 row++;
             }
 
