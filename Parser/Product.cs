@@ -5,8 +5,10 @@ namespace Parser
 {
     public class Product
     {
-        public Data data { get; set; }
-        public int status { get; set; }
+        [JsonProperty("data")]
+        public Data Data { get; set; }
+        [JsonProperty("status")]
+        public int Status { get; set; }
     }
 
 
@@ -25,18 +27,31 @@ namespace Parser
         [JsonProperty("date_created")]
         [JsonConverter(typeof(DateConverter))]
         public DateTime? DateCreated { get; set; }
+
         [JsonProperty("date_updated")]
-        public long? DateUpdated { get; set; }
+        [JsonConverter(typeof(DateConverter))]
+        public DateTime? DateUpdated { get; set; }
+
         [JsonProperty("date_published")]
-        public long? DatePublished { get; set; }
+        [JsonConverter(typeof(DateConverter))]
+        public DateTime? DatePublished { get; set; }
+
         [JsonProperty("date_sold")]
-        public long? DateSold { get; set; }
+        [JsonConverter(typeof(DateConverter))]
+        public DateTime? DateSold { get; set; }
+
         [JsonProperty("date_blocked")]
-        public long? DateBlocked { get; set; }
+        [JsonConverter(typeof(DateConverter))]
+        public DateTime? DateBlocked { get; set; }
+
         [JsonProperty("date_deleted")]
-        public long? DateDeleted { get; set; }
+        [JsonConverter(typeof(DateConverter))]
+        public DateTime? DateDeleted { get; set; }
+
         [JsonProperty("date_archivation")]
-        public long? DateArchivation { get; set; }
+        [JsonConverter(typeof(DateConverter))]
+        public DateTime? DateArchivation { get; set; }
+
         #endregion
 
         [JsonProperty("is_published")]

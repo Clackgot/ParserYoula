@@ -15,6 +15,7 @@ namespace Parser
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
+            if (reader.Value == null) return null;
             if(long.TryParse((reader.Value.ToString()), out long result))
             {
                 return Tools.ConvertFromUnixTimestamp(result);

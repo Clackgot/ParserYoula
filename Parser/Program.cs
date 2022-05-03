@@ -8,7 +8,19 @@ using System.Threading.Tasks;
 namespace Parser
 {
 
-
+    public static class YoulaApi
+    {
+        public static async Task<Product> Product(string id)
+        {
+            HttpClient client = new HttpClient();
+            HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, new Uri($"https://api.youla.io/api/v1/product/{id}"));
+            HttpResponseMessage response = await client.SendAsync(httpRequest);
+            Stream contentStream = await response.Content.ReadAsStreamAsync();
+            JsonTextReader reader = new JsonTextReader(new StreamReader(contentStream));
+            JObject json = await JObject.LoadAsync(reader);
+            return JsonConvert.DeserializeObject<Product>(json.ToString());
+        }
+    }
 
     class Program
     {
@@ -16,7 +28,8 @@ namespace Parser
         {
             try
             {
-                await Get();
+                Product product = await YoulaApi.Product("620f3cd4fd03ff2af72e98e9");
+                Console.WriteLine(product.Data.DateCreated);
             }
             catch (Exception e)
             {
@@ -25,25 +38,6 @@ namespace Parser
 
         }
         
-        private static async Task Get()
-        {
-            HttpClient client = new HttpClient();
-            HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, new Uri("https://api.youla.io/api/v1/product/62714543ee67b9067107a583"));
-            HttpResponseMessage response = await client.SendAsync(httpRequest);
-            //byte[] content = await response.Content.ReadAsByteArrayAsync();
-            //string contentString = await response.Content.ReadAsStringAsync();
-            Stream contentStream = await response.Content.ReadAsStreamAsync();
-            //JObject.Parse(contentString);
 
-            //string jsonText = Encoding.UTF8.GetString(content);
-
-            JsonTextReader reader = new JsonTextReader(new StreamReader(contentStream));
-
-            JObject json = await JObject.LoadAsync(reader);
-
-            Product product = JsonConvert.DeserializeObject<Product>(json.ToString());
-
-            Console.WriteLine(product.data.DateCreated);
-        }
     }
 }
