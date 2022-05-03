@@ -3,19 +3,21 @@ using System;
 
 namespace Parser
 {
-    public class Product
+
+
+
+
+    public class Product : BaseEntity
     {
         [JsonProperty("data")]
-        public Data Data { get; set; }
-        [JsonProperty("status")]
-        public int Status { get; set; }
+        public ProductData Data { get; set; }
     }
 
-
-    public class Data
+    public class ProductData : Data
     {
-        [JsonProperty("id")]
-        public string Id { get; set; }
+        [JsonProperty("location")]
+        public Location Location { get; set; }
+
 
         [JsonProperty("name")]
         public string Name { get; set; }
@@ -78,4 +80,12 @@ namespace Parser
         [JsonProperty("is_promoted")]
         public bool IsPromoted { get; set; }
     }
+
+
+
+
+
+
+
+
 }
