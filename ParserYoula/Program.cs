@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
@@ -185,8 +185,8 @@ namespace ParserYoula
 
             return product;
         }
-
-
+            return searchAttributes;
+        }
         /// <summary>
         /// Получает параметры поискового запроса из ссылки
         /// </summary>
