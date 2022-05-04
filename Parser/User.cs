@@ -1,28 +1,22 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.Serialization;
 
 namespace Parser
 {
+
+
 
     /// <summary>
     /// Тип пользователя
     /// </summary>
     public enum UserType
     {
-        [Description("Персона")]
         [EnumMember(Value = "person")]
         Person,
-        [Description("Профессионал")]
         [EnumMember(Value = "b2b_professional")]
         B2BProfessional,
-        [Description("Другое")]
-        [EnumMember(Value = "other")]
-        Other
     }
 
     [JsonObject(MemberSerialization.OptIn)]
@@ -40,7 +34,7 @@ namespace Parser
 
         #region Тип пользователя
         [JsonProperty("type")]
-        [JsonConverter(typeof(UserTypeConverter))]
+        [JsonConverter(typeof(StringEnumConverter))]
         public UserType Type { get; set; } 
         #endregion
 
