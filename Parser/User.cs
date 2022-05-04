@@ -1,11 +1,12 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Runtime.Serialization;
 
 namespace Parser
 {
+
+
 
     /// <summary>
     /// Тип пользователя
@@ -18,7 +19,7 @@ namespace Parser
         B2BProfessional,
     }
 
-
+    [JsonObject(MemberSerialization.OptIn)]
     public class User : BaseEntity
     {
         [JsonProperty("data")]
@@ -31,24 +32,47 @@ namespace Parser
         [JsonProperty("name")]
         public string Name { get; set; }
 
+        #region Тип пользователя
         [JsonProperty("type")]
         [JsonConverter(typeof(StringEnumConverter))]
-        public UserType Type { get; set; }
+        public UserType Type { get; set; } 
+        #endregion
 
         [JsonProperty("settings")]
         public Settings Settings { get; set; }
 
 
+        #region Дата регистрации
         [JsonProperty("date_registered")]
         [JsonConverter(typeof(DateConverter))]
-        public DateTime DateRegistered { get; set; }
+        public DateTime DateRegistered { get; set; } 
+        #endregion
 
+        #region Дата последней авторизации
         [JsonProperty("last_auth_date")]
         [JsonConverter(typeof(DateConverter))]
-        public DateTime LastAuthDate { get; set; }
+        public DateTime LastAuthDate { get; set; } 
+        #endregion
 
+        #region Подписки
+        [JsonProperty("followers_cnt")]
+        public int FollowersCnt { get; set; }
+
+        [JsonProperty("following_cnt")]
+        public int FollowingCnt { get; set; } 
+        #endregion
+
+        #region Рейтинг
+        [JsonProperty("rating_mark")]
+        public double RatingMark { get; set; }
+
+
+        [JsonProperty("rating_mark_cnt")]
+        public int RatingMarkCnt { get; set; } 
+        #endregion
 
     }
+
 
     public class Settings
     {
