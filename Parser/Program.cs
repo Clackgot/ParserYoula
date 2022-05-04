@@ -45,7 +45,7 @@ namespace Parser
                 //Console.WriteLine(product);
                 //Console.ResetColor();
                 User user = await YoulaApi.User("5a03237180e08e05465886a4");
-                Console.WriteLine(user.Data.Type);
+                Console.WriteLine(user.Data.Type.GetDescription());
 
 
             }
