@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Runtime.Serialization;
 
 namespace Parser
@@ -22,6 +23,7 @@ namespace Parser
     {
         [JsonProperty("data")]
         public UserData Data { get; set; }
+
     }
 
 
@@ -36,6 +38,11 @@ namespace Parser
 
         [JsonProperty("settings")]
         public Settings Settings { get; set; }
+
+
+        [JsonProperty("date_registered")]
+        [JsonConverter(typeof(DateConverter))]
+        public DateTime DateRegistered { get; set; }
 
     }
 
