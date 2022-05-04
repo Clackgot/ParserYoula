@@ -23,7 +23,6 @@ namespace Parser
     {
         [JsonProperty("data")]
         public UserData Data { get; set; }
-
     }
 
 
@@ -43,6 +42,11 @@ namespace Parser
         [JsonProperty("date_registered")]
         [JsonConverter(typeof(DateConverter))]
         public DateTime DateRegistered { get; set; }
+
+        [JsonProperty("last_auth_date")]
+        [JsonConverter(typeof(DateConverter))]
+        public DateTime LastAuthDate { get; set; }
+
 
     }
 
