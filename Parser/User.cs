@@ -1,8 +1,21 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using System.Runtime.Serialization;
 
 namespace Parser
 {
+
+    /// <summary>
+    /// Тип пользователя
+    /// </summary>
+    public enum UserType
+    {
+        [EnumMember(Value = "person")]
+        Person,
+        [EnumMember(Value = "b2b_professional")]
+        B2BProfessional,
+    }
 
 
     public class User : BaseEntity
@@ -16,8 +29,10 @@ namespace Parser
     {
         [JsonProperty("name")]
         public string Name { get; set; }
+
         [JsonProperty("type")]
-        public string Type { get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public UserType Type { get; set; }
 
         [JsonProperty("settings")]
         public Settings Settings { get; set; }

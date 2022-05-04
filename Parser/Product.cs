@@ -13,11 +13,16 @@ namespace Parser
         public ProductData Data { get; set; }
     }
 
+
+    public class Owner : JsonEntity
+    {
+        
+    }
+
     public class ProductData : Data
     {
         [JsonProperty("location")]
         public Location Location { get; set; }
-
 
         [JsonProperty("name")]
         public string Name { get; set; }
@@ -56,6 +61,7 @@ namespace Parser
 
         #endregion
 
+        #region Состояния
         [JsonProperty("is_published")]
         public bool IsPublished { get; set; }
 
@@ -78,7 +84,8 @@ namespace Parser
         public bool IsVerified { get; set; }
 
         [JsonProperty("is_promoted")]
-        public bool IsPromoted { get; set; }
+        public bool IsPromoted { get; set; } 
+        #endregion
     }
 
 

@@ -40,10 +40,14 @@ namespace Parser
         {
             try
             {
-                Product product = await YoulaApi.Product("620f3cd4fd03ff2af72e98e9");
-                Console.WriteLine(product);
-                User user = await YoulaApi.User("59e981a2cf204580004ca894");
-                Console.WriteLine(user);
+                //Console.ForegroundColor = ConsoleColor.Green;
+                //Product product = await YoulaApi.Product("61e7f29fd069ef75944c1693");
+                //Console.WriteLine(product);
+                //Console.ResetColor();
+                User user = await YoulaApi.User("5a03237180e08e05465886a4");
+                Console.WriteLine(user.Data.Type);
+
+
             }
             catch (Exception e)
             {
