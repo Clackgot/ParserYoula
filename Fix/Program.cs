@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using static Fix.Yola;
 
 namespace Fix
 {
@@ -38,25 +40,70 @@ namespace Fix
         }
 
 
+
+
+        public class Parser
+        {
+            private DataBaseContext context = new DataBaseContext();
+
+            private List<Product> ValidProducts = new List<Product>();
+
+            public List<string> BlackWords = new List<string>();
+
+            public bool IsValid(Product product)
+            {
+                if (product != null)
+                {
+                    bool isRatingLowerThen3 = product.Owner.rating_mark_cnt < 3;
+                    bool haveBlackwords = false;
+                    foreach (var blackWord in BlackWords)
+                    {
+                        haveBlackwords = product.Description.Contains(blackWord);
+                        if (haveBlackwords) break;
+                    }
+                    bool isShop = product.Owner.store != null;
+                    Console.WriteLine(isShop);
+                    Console.WriteLine($"{isRatingLowerThen3} {haveBlackwords} {isShop}");
+                    return isRatingLowerThen3 && !haveBlackwords && !isShop;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            public Parser()
+            {
+            }
+
+            public async Task Run()
+            {
+                string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=1000000&attributes[price][from]=900000";
+                //var products1 = GetAllProducts(new SearchParams(link));
+                var products2 = await GetProducts(new SearchParams(link));
+                int count = 0;
+
+                foreach (var product in products2)
+                {
+                    //await context.AddAsync(product);
+                    //IsValid(product);
+                    Console.WriteLine(product.Name);
+                    count++;
+                }
+
+                //await context.SaveChangesAsync();
+
+                //var user = await Yola.GetUserByIdAsync("5a03237180e08e05465886a4");
+                //Console.WriteLine(user);
+            }
+        }
+
         static async Task Main(string[] args)
         {
-            DataBaseContext context = new DataBaseContext();
-            var products1 = Yola.GetAllProducts(new Yola.SearchParams() { City = "sochi" });
-            var products2 = await Yola.GetProducts(new Yola.SearchParams() { Limit = 10, Page = 0});
-            int count = 0;
 
-            foreach (var product in products2)
-            {
-                await context.AddAsync(product);
-                count++;
-            }
-            Console.WriteLine(count);
+            Parser parser = new Parser();
+            await parser.Run();
 
-
-            await context.SaveChangesAsync();
-
-            //var user = await Yola.GetUserByIdAsync("5a03237180e08e05465886a4");
-            //Console.WriteLine(user);
         }
     }
 }
