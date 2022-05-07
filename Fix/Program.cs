@@ -151,7 +151,10 @@ namespace Fix
 
             public async Task Run()
             {
-                string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=10000&attributes[price][from]=9000";
+
+                //string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=10000&attributes[price][from]=9000";
+                Console.WriteLine("Ссылка:");
+                string link = Console.ReadLine();
                 SearchParams searchParams = new SearchParams(link);
                 IAsyncEnumerable<Product> products = GetAllProducts(searchParams);
                 int count = 0;      
@@ -182,8 +185,19 @@ namespace Fix
         static async Task Main(string[] args)
         {
 
-            Parser parser = new Parser();
-            await parser.Run();
+            try
+            {
+                Parser parser = new Parser();
+                await parser.Run();
+            }
+            catch(Exception e)
+            {
+                File.WriteAllText("log.txt", e.ToString());
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine(e.Message);
+                Console.ResetColor();
+                Console.ReadKey();
+            }
 
         }
     }
