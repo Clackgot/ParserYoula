@@ -67,6 +67,7 @@ namespace Fix
                     public bool IsShop { get; set; }
                     public bool HasBlackwords { get; set; }
                     public bool IsRaitingValid { get; set; }
+                    public bool IsValid() => !IsShop && !HasBlackwords && IsRaitingValid;
                 }
 
                 public static FilterResult Check(Product product, FilterParams filterParams = null)
@@ -112,26 +113,24 @@ namespace Fix
 
             public async Task Run()
             {
-                string link = "https://youla.ru/pyatigorsk/zhivotnye?attributes[price][to]=270000&attributes[price][from]=250000";
-                //var products1 = GetAllProducts(new SearchParams(link));
-                var products2 = await GetProducts(new SearchParams(link));
+                string link = "https://youla.ru/pyatigorsk/zhivotnye";
+                var products = GetAllProducts(new SearchParams(link));
                 int count = 0;
 
-                foreach (var product in products2)
+
+                await foreach (var product in products)
                 {
-                    //await context.AddAsync(product);
-                    //Console.WriteLine($"{product.Name} {product.Owner.store != null}");
-                    if (Check(product, filterParams).HasBlackwords)
+                    if (Check(product, filterParams).IsValid())
                     {
-                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        ValidProducts.Add(product);
                     }
                     else
                     {
-                        Console.ForegroundColor = ConsoleColor.Green;
+                        Console.ForegroundColor = ConsoleColor.Red;
                     }
                     Console.WriteLine(product.Name);
                     Console.ResetColor();
-                    //Console.WriteLine(product.Name);
                     count++;
                 }
                 
