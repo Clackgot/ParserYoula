@@ -90,6 +90,8 @@ namespace Fix
             JsonTextReader reader = new JsonTextReader(new StreamReader(contentStream));
             JObject json = await JObject.LoadAsync(reader);
             ProductsResponse productsResponse = JsonConvert.DeserializeObject<ProductsResponse>(json.ToString());
+            productsResponse.Products.ToList().ForEach(async product => product.Owner = await GetUserByIdAsync(product.Owner.idString));
+
             return productsResponse.Products;
         }
 
@@ -132,13 +134,6 @@ namespace Fix
                 foreach (Product product in products)
                 {
                     isEmpty = false;
-                    User user = await GetUserByIdAsync(product.Owner.id);
-                    if(user != null)
-                    {
-                        product.Owner = user;
-                    }
-                    
-                    product.Owner.id = product.Owner.id;
                     yield return product;
                 }
                 if (isEmpty) break;
