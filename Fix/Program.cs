@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using static Fix.Program.Parser.Filter;
 using static Fix.Yola;
@@ -85,15 +87,21 @@ namespace Fix
                     return filterResult;
                 }
             }
-            public FilterParams FilterParams { get; set; }
+            public FilterParams filterParams { get; set; } = new FilterParams();
 
-            public Parser(FilterParams filterParams)
-            {
-                FilterParams = filterParams;
-            }
             public Parser()
             {
-                FilterParams = new FilterParams();
+                if(!File.Exists("filter.json"))
+                {
+                    filterParams.Blackwords = new List<string>() { "example1", "example2"};
+                    var filterJson = JsonConvert.SerializeObject(filterParams);
+                    File.WriteAllText("filter.json", filterJson);
+                }
+                else
+                {
+                    var json = File.ReadAllText("filter.json");
+                    filterParams = JsonConvert.DeserializeObject<FilterParams>(json);
+                }
             }
 
             public async Task Run()
@@ -107,7 +115,7 @@ namespace Fix
                 {
                     //await context.AddAsync(product);
                     //Console.WriteLine($"{product.Name} {product.Owner.store != null}");
-                    if (Check(product, FilterParams).HasBlackwords)
+                    if (Check(product, filterParams).HasBlackwords)
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
                     }
@@ -120,7 +128,7 @@ namespace Fix
                     //Console.WriteLine(product.Name);
                     count++;
                 }
-
+                
                 //await context.SaveChangesAsync();
 
                 //var user = await Yola.GetUserByIdAsync("5a03237180e08e05465886a4");
@@ -131,7 +139,7 @@ namespace Fix
         static async Task Main(string[] args)
         {
 
-            Parser parser = new Parser(new FilterParams() { Blackwords = new List<string>() { "Аквариум", "Жук" }});
+            Parser parser = new Parser();
             await parser.Run();
 
         }
