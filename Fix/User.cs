@@ -79,14 +79,18 @@ namespace Fix
 
     public class Store : JsonEntity
     {
-        public string id { get; set; }
+        [JsonIgnore]
+        public int Id { get; set; }
+        public string idString { get; set; }
         public string title { get; set; }
         public Logo logo { get; set; }
     }
 
     public class Logo : JsonEntity
     {
-        public string id { get; set; }
+        [JsonIgnore]
+        public int Id { get; set; }
+        public string idString { get; set; }
         public string url { get; set; }
         public int? height { get; set; }
         public int? width { get; set; }

@@ -48,7 +48,7 @@ namespace Fix
 
         public class Parser
         {
-            private DataBaseContext context = new DataBaseContext();
+            private static DataBaseContext context = new DataBaseContext();
 
             private List<Product> ValidProducts = new List<Product>();
 
@@ -65,13 +65,14 @@ namespace Fix
                 }
                 public class FilterResult : JsonEntity
                 {
+                    public bool IsExsist { get; set; }
                     public bool IsShop { get; set; }
                     public bool HasBlackwords { get; set; }
                     public bool IsRaitingValid { get; set; }
-                    public bool IsValid() => !IsShop && !HasBlackwords && IsRaitingValid;
+                    public bool IsValid() => !IsShop && !HasBlackwords && IsRaitingValid && !IsExsist;
                 }
 
-                public static FilterResult Check(Product product, FilterParams filterParams = null)
+                public static async Task<FilterResult> Check(Product product, FilterParams filterParams = null)
                 {
                     if(filterParams == null)
                         filterParams = new FilterParams();
@@ -92,6 +93,12 @@ namespace Fix
                     {
                         filterResult.IsShop = false;
                     }
+
+                    //context.Products.Select
+
+                    var existedProduct = await context.Products.FirstOrDefaultAsync(p => p.Id == product.Id);
+                    var existedOwner = await context.Owners.FirstOrDefaultAsync(p => p.Id == product.Owner.Id);
+                    filterResult.IsExsist = existedProduct != null || existedOwner != null;
                     return filterResult;
                 }
             }
@@ -140,14 +147,16 @@ namespace Fix
 
             public async Task Run()
             {
-                string link = "https://youla.ru/pyatigorsk/zhivotnye?attributes[price][to]=270000";
-                var products = GetAllProducts(new SearchParams(link));
+                string link = "https://youla.ru/pyatigorsk/zhivotnye?attributes[price][to]=270000&attributes[price][from]=255000";
+                IAsyncEnumerable<Product> products = GetAllProducts(new SearchParams(link));
                 int count = 0;
+                
 
-
-                await foreach (var product in products)
+                await foreach (Product product in products)
                 {
-                    if (Check(product, filterParams).IsValid())
+                    await context.AddAsync(product);
+                    FilterResult checkResult = await Check(product, filterParams);
+                    if (checkResult.IsValid())
                     {
                         Console.ForegroundColor = ConsoleColor.Green;
                         ValidProducts.Add(product);
@@ -161,10 +170,8 @@ namespace Fix
                     count++;
                 }
                 SaveToExcel(ValidProducts);
-                //await context.SaveChangesAsync();
-
-                //var user = await Yola.GetUserByIdAsync("5a03237180e08e05465886a4");
-                //Console.WriteLine(user);
+                
+                await context.SaveChangesAsync();
             }
         }
 
