@@ -41,7 +41,8 @@ namespace Fix
                 UriBuilder uriBuilder = new UriBuilder(uri);
                 NameValueCollection query = HttpUtility.ParseQueryString(uriBuilder.Query);
                 City city = await GetCityBySlug(CitySlug);
-                CityId = city.Id;
+
+                CityId = city?.Id;
                 if (city != null) query["city"] = CityId;
                 if (Category != null) query["category"] = Category;
                 if (Subcategory != null) query["subcategory"] = Subcategory;
