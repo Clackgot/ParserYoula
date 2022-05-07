@@ -128,9 +128,13 @@ namespace Fix
             JsonTextReader reader = new JsonTextReader(new StreamReader(contentStream));
             JObject json = await JObject.LoadAsync(reader);
             ProductsResponse productsResponse = JsonConvert.DeserializeObject<ProductsResponse>(json.ToString());
+            int count = productsResponse.Products.Length;
+            int current = 1;
             foreach (var product in productsResponse.Products)
             {
+                Console.WriteLine($"[{current}|{count}] {product.Name}");
                 product.Owner = await GetUserByIdAsync(product.Owner.idString);
+                current++;
             }
             return productsResponse.Products;
         }

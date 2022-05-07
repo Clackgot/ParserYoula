@@ -55,6 +55,7 @@ namespace Fix
             private static DataBaseContext context = new DataBaseContext();
 
             private List<Product> ValidProducts = new List<Product>();
+            private List<Product> InvalidProducts = new List<Product>();
 
             public static class Filter
             {
@@ -81,8 +82,8 @@ namespace Fix
                     if(filterParams == null)
                         filterParams = new FilterParams();
                     FilterResult filterResult = new FilterResult();
-                    filterResult.IsRaitingValid = product.Owner.rating_mark_cnt < filterParams.MaxRatingCount &&
-                                                product.Owner.rating_mark_cnt > filterParams.MinRatingCount;
+                    filterResult.IsRaitingValid = product.Owner.rating_mark_cnt <= filterParams.MaxRatingCount &&
+                                                product.Owner.rating_mark_cnt >= filterParams.MinRatingCount;
                     bool hasBlackwords = false;
                     foreach (var blackWord in filterParams.Blackwords)
                     {
@@ -123,28 +124,53 @@ namespace Fix
                 }
             }
 
-            private static void SaveToExcel(List<Product> products)
+            private void SaveToExcel()
             {
                 var package = new ExcelPackage();
 
-                var sheet = package.Workbook.Worksheets.Add("Результат");
-                sheet.Cells[1, 1].Value = "Ссылка";
-                sheet.Cells[1, 2].Value = "Название";
-                sheet.Cells[1, 3].Value = "Дата публикации";
+                var valid = package.Workbook.Worksheets.Add("Валид");
+                valid.Cells[1, 1].Value = "Ссылка";
+                valid.Cells[1, 2].Value = "Название";
+                valid.Cells[1, 3].Value = "Дата публикации";
 
                 int row = 2;
                 int col = 1;
 
-                foreach (var product in products)
+                foreach (var product in ValidProducts)
                 {
-                    sheet.Cells[row, col].Value = $"https://youla.ru/p{product.IdString}";
-                    sheet.Cells[row, col + 1].Value = product.Name;
-                    sheet.Cells[row, col + 2].Value = product.DatePublished;
+                    valid.Cells[row, col].Value = $"https://youla.ru/p{product.IdString}";
+                    valid.Cells[row, col + 1].Value = product.Name;
+                    valid.Cells[row, col + 2].Value = product.DatePublished;
                     row++;
                 }
 
-                sheet.Protection.IsProtected = false;
+                valid.Protection.IsProtected = false;
+
+
+                var invalid = package.Workbook.Worksheets.Add("Невалид");
+                invalid.Cells[1, 1].Value = "Ссылка";
+                invalid.Cells[1, 2].Value = "Название";
+                invalid.Cells[1, 3].Value = "Дата публикации";
+
+                row = 2;
+                col = 1;
+
+                foreach (var product in InvalidProducts)
+                {
+                    invalid.Cells[row, col].Value = $"https://youla.ru/p{product.IdString}";
+                    invalid.Cells[row, col + 1].Value = product.Name;
+                    invalid.Cells[row, col + 2].Value = product.DatePublished;
+                    row++;
+                }
+
+                valid.Protection.IsProtected = false;
+
+
+
                 var excel = package.GetAsByteArray();
+
+
+
                 File.WriteAllBytes("result.xlsx", excel);
             }
 
@@ -171,12 +197,13 @@ namespace Fix
                     else
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
+                        InvalidProducts.Add(product);
                     }
-                    Console.WriteLine(product.Name);
+                    Console.WriteLine($"https://youla.ru/p{product.IdString} Отзывов[{filterParams.MinRatingCount}-{filterParams.MaxRatingCount}]:{checkResult.IsRaitingValid} Есть слова из блеклиста:{checkResult.HasBlackwords} Магазин:{checkResult.IsShop}");
                     Console.ResetColor();
                     count++;
                 }
-                SaveToExcel(ValidProducts);
+                SaveToExcel();
                 
                 await context.SaveChangesAsync();
             }
