@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -111,9 +112,35 @@ namespace Fix
                 }
             }
 
+            private static void SaveToExcel(List<Product> products)
+            {
+                var package = new ExcelPackage();
+
+                var sheet = package.Workbook.Worksheets.Add("Результат");
+                sheet.Cells[1, 1].Value = "Ссылка";
+                sheet.Cells[1, 2].Value = "Название";
+                sheet.Cells[1, 3].Value = "Дата публикации";
+
+                int row = 2;
+                int col = 1;
+
+                foreach (var product in products)
+                {
+                    sheet.Cells[row, col].Value = $"https://youla.ru/p{product.Id}";
+                    sheet.Cells[row, col + 1].Value = product.Name;
+                    sheet.Cells[row, col + 2].Value = product.DatePublished;
+                    row++;
+                }
+
+                sheet.Protection.IsProtected = false;
+                var excel = package.GetAsByteArray();
+                File.WriteAllBytes("result.xlsx", excel);
+            }
+
+
             public async Task Run()
             {
-                string link = "https://youla.ru/pyatigorsk/zhivotnye";
+                string link = "https://youla.ru/pyatigorsk/zhivotnye?attributes[price][to]=270000";
                 var products = GetAllProducts(new SearchParams(link));
                 int count = 0;
 
@@ -133,7 +160,7 @@ namespace Fix
                     Console.ResetColor();
                     count++;
                 }
-                
+                SaveToExcel(ValidProducts);
                 //await context.SaveChangesAsync();
 
                 //var user = await Yola.GetUserByIdAsync("5a03237180e08e05465886a4");
