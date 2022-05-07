@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using static Fix.Program.Parser.Filter;
 using static Fix.Yola;
 
 namespace Fix
@@ -48,37 +49,56 @@ namespace Fix
 
             private List<Product> ValidProducts = new List<Product>();
 
-            public List<string> BlackWords = new List<string>();
-
-            public bool IsValid(Product product)
+            public static class Filter
             {
-                if (product != null)
+                public class FilterParams : JsonEntity
                 {
-                    bool isRatingLowerThen3 = product.Owner.rating_mark_cnt < 3;
-                    bool haveBlackwords = false;
-                    foreach (var blackWord in BlackWords)
-                    {
-                        haveBlackwords = product.Description.Contains(blackWord);
-                        if (haveBlackwords) break;
-                    }
-                    bool isShop = product.Owner.store != null;
-                    Console.WriteLine(isShop);
-                    Console.WriteLine($"{isRatingLowerThen3} {haveBlackwords} {isShop}");
-                    return isRatingLowerThen3 && !haveBlackwords && !isShop;
+                    public int MinRatingCount { get; set; } = 0;
+                    public int MaxRatingCount { get; set; } = 2;
+
+                    public List<string> Blackwords { get; set; } = new List<string>();
                 }
-                else
+                public class FilterResult : JsonEntity
                 {
-                    return false;
+                    public bool IsShop { get; set; }
+                    public bool HasBlackwords { get; set; }
+                    public bool IsRaitingValid { get; set; }
+                }
+
+                public static FilterResult Check(Product product, FilterParams filterParams = null)
+                {
+                    if(filterParams == null)
+                        filterParams = new FilterParams();
+                    FilterResult filterResult = new FilterResult();
+                    filterResult.IsRaitingValid = product.Owner.rating_mark_cnt < filterParams.MaxRatingCount &&
+                                                product.Owner.rating_mark_cnt > filterParams.MinRatingCount;
+                    bool hasBlackwords = false;
+                    foreach (var blackWord in filterParams.Blackwords)
+                    {
+                        hasBlackwords = product.Name.ToLowerInvariant().Contains(blackWord.ToLower()) ||
+                                         product.Description.ToLowerInvariant().Contains(blackWord.ToLower());
+                        if (hasBlackwords) break;
+                    }
+                    filterResult.HasBlackwords = hasBlackwords;
+
+                    filterResult.IsShop = product.Owner.store != null;
+                    return filterResult;
                 }
             }
+            public FilterParams FilterParams { get; set; }
 
+            public Parser(FilterParams filterParams)
+            {
+                FilterParams = filterParams;
+            }
             public Parser()
             {
+                FilterParams = new FilterParams();
             }
 
             public async Task Run()
             {
-                string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=1000000&attributes[price][from]=900000";
+                string link = "https://youla.ru/pyatigorsk/zhivotnye?attributes[price][to]=270000&attributes[price][from]=250000";
                 //var products1 = GetAllProducts(new SearchParams(link));
                 var products2 = await GetProducts(new SearchParams(link));
                 int count = 0;
@@ -86,8 +106,18 @@ namespace Fix
                 foreach (var product in products2)
                 {
                     //await context.AddAsync(product);
-                    //IsValid(product);
+                    //Console.WriteLine($"{product.Name} {product.Owner.store != null}");
+                    if (Check(product, FilterParams).HasBlackwords)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                    }
                     Console.WriteLine(product.Name);
+                    Console.ResetColor();
+                    //Console.WriteLine(product.Name);
                     count++;
                 }
 
@@ -101,7 +131,7 @@ namespace Fix
         static async Task Main(string[] args)
         {
 
-            Parser parser = new Parser();
+            Parser parser = new Parser(new FilterParams() { Blackwords = new List<string>() { "Аквариум", "Жук" }});
             await parser.Run();
 
         }
