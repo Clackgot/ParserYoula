@@ -9,6 +9,8 @@ namespace Fix
 
     public class Product : JsonEntity
     {
+        [JsonIgnore]
+        public int Id { get; set; }
         #region Вложенные объекты
         [JsonProperty("owner")]
         public User Owner { get; set; }
@@ -23,7 +25,7 @@ namespace Fix
         #region Поля
 
         [JsonProperty("id")]
-        public string Id { get; set; }
+        public string IdString { get; set; }
         [JsonProperty("linked_id")]
         public string Linked_id { get; set; }
         [JsonProperty("type")]

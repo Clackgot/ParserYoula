@@ -25,8 +25,12 @@ namespace Fix
 
             public DataBaseContext()
             {
-                Database.EnsureDeleted();
-                Database.EnsureCreated();
+                if(!File.Exists(DbName))
+                {
+                    Database.EnsureDeleted();
+                    Database.EnsureCreated();
+                }
+
                 //if (!File.Exists(DbName))
                 //    Database.Migrate();
                 //Database.Migrate();
@@ -96,7 +100,7 @@ namespace Fix
 
                     //context.Products.Select
 
-                    var existedProduct = await context.Products.FirstOrDefaultAsync(p => p.Id == product.Id);
+                    var existedProduct = await context.Products.FirstOrDefaultAsync(p => p.IdString == product.IdString);
                     var existedOwner = await context.Owners.FirstOrDefaultAsync(p => p.Id == product.Owner.Id);
                     filterResult.IsExsist = existedProduct != null || existedOwner != null;
                     return filterResult;
@@ -133,7 +137,7 @@ namespace Fix
 
                 foreach (var product in products)
                 {
-                    sheet.Cells[row, col].Value = $"https://youla.ru/p{product.Id}";
+                    sheet.Cells[row, col].Value = $"https://youla.ru/p{product.IdString}";
                     sheet.Cells[row, col + 1].Value = product.Name;
                     sheet.Cells[row, col + 2].Value = product.DatePublished;
                     row++;
@@ -147,10 +151,10 @@ namespace Fix
 
             public async Task Run()
             {
-                string link = "https://youla.ru/pyatigorsk/zhivotnye?attributes[price][to]=270000&attributes[price][from]=255000";
-                IAsyncEnumerable<Product> products = GetAllProducts(new SearchParams(link));
-                int count = 0;
-                
+                string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=10000&attributes[price][from]=9000";
+                SearchParams searchParams = new SearchParams(link);
+                IAsyncEnumerable<Product> products = GetAllProducts(searchParams);
+                int count = 0;      
 
                 await foreach (Product product in products)
                 {

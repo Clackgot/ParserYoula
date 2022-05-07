@@ -25,7 +25,7 @@ namespace Fix
     {
         public class SearchParams : JsonEntity
         {
-            public string CityId { get; private set; }
+            public string CityId { get; set; }
             public string CitySlug { get; set; } = string.Empty;
             public int? PriceFrom { get; set; }
             public int? PriceTo { get; set; }
@@ -33,7 +33,7 @@ namespace Fix
             public string Category { get; set; }
             public string Subcategory { get; set; }
             public int Limit { get; set; } = 100;
-            public int? Page { get; set; }
+            public int Page { get; set; } = 0;
 
             public async Task<Uri> GetUri()
             {
@@ -46,7 +46,7 @@ namespace Fix
                 if (Category != null) query["category"] = Category;
                 if (Subcategory != null) query["subcategory"] = Subcategory;
                 if (Limit != 0) query["limit"] = Limit.ToString();
-                if (Page != null) query["page"] = Page.ToString();
+                if (Page >= 0) query["page"] = Page.ToString();
                 if (PriceFrom != null && PriceFrom >= 0) query["attributes[price][from]"] = PriceFrom.ToString();
                 if (PriceTo != null && PriceTo > 0) query["attributes[price][to]"] = PriceTo.ToString();
                 if (OwnerId != null) query["owner_id"] = OwnerId;
