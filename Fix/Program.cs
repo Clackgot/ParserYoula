@@ -59,6 +59,8 @@ namespace Fix
                     public int MaxRatingCount { get; set; } = 2;
 
                     public List<string> Blackwords { get; set; } = new List<string>();
+
+                    public bool withShops { get; set; }
                 }
                 public class FilterResult : JsonEntity
                 {
@@ -83,7 +85,11 @@ namespace Fix
                     }
                     filterResult.HasBlackwords = hasBlackwords;
 
-                    filterResult.IsShop = product.Owner.store != null;
+                    if (!filterParams.withShops) { filterResult.IsShop = product.Owner.store != null; }
+                    else
+                    {
+                        filterResult.IsShop = false;
+                    }
                     return filterResult;
                 }
             }
