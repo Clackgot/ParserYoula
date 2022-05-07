@@ -252,7 +252,6 @@ namespace ParserYoula
             {
                 product.OwnerId = jsonResponse["data"]["owner"]["id"].ToString();
                 int marksCount;
-                bool isShop;
                 if (int.TryParse(jsonResponse["data"]["owner"]["rating_mark_cnt"].ToString(), out marksCount))
                 {
                     product.MarksCount = marksCount;
