@@ -55,7 +55,7 @@ namespace Fix
             private static DataBaseContext context = new DataBaseContext();
 
             private List<Product> ValidProducts = new List<Product>();
-            private List<Product> InvalidProducts = new List<Product>();
+            private List<(Product, FilterResult)> InvalidProducts = new List<(Product, FilterResult)>();
 
             public static class Filter
             {
@@ -151,15 +151,23 @@ namespace Fix
                 invalid.Cells[1, 1].Value = "Ссылка";
                 invalid.Cells[1, 2].Value = "Название";
                 invalid.Cells[1, 3].Value = "Дата публикации";
+                invalid.Cells[1, 4].Value = "Это магазин";
+                invalid.Cells[1, 5].Value = "Отзывов < 3";
+                invalid.Cells[1, 6].Value = "Есть слова из блеклиста";
+                invalid.Cells[1, 7].Value = "Уже в базе";
 
                 row = 2;
                 col = 1;
 
                 foreach (var product in InvalidProducts)
                 {
-                    invalid.Cells[row, col].Value = $"https://youla.ru/p{product.IdString}";
-                    invalid.Cells[row, col + 1].Value = product.Name;
-                    invalid.Cells[row, col + 2].Value = product.DatePublished;
+                    invalid.Cells[row, col].Value = $"https://youla.ru/p{product.Item1.IdString}";
+                    invalid.Cells[row, col + 1].Value = product.Item1.Name;
+                    invalid.Cells[row, col + 2].Value = product.Item1.DatePublished;
+                    invalid.Cells[row, col + 3].Value = product.Item2.IsShop;
+                    invalid.Cells[row, col + 4].Value = product.Item2.IsRaitingValid;
+                    invalid.Cells[row, col + 5].Value = product.Item2.HasBlackwords;
+                    invalid.Cells[row, col + 6].Value = product.Item2.IsExsist;
                     row++;
                 }
 
@@ -761,8 +769,8 @@ namespace Fix
                 string link = Console.ReadLine();
                 SearchParams searchParams = new SearchParams(link);
                 IAsyncEnumerable<Product> products = GetAllProducts(searchParams);
-                int count = 0;      
-
+                int count = 0;
+                
                 await foreach (Product product in products)
                 {
                     await context.AddAsync(product);
@@ -775,9 +783,10 @@ namespace Fix
                     else
                     {
                         Console.ForegroundColor = ConsoleColor.Red;
-                        InvalidProducts.Add(product);
+                        InvalidProducts.Add((product, checkResult));
                     }
-                    Console.WriteLine($"https://youla.ru/p{product.IdString} Отзывов[{filterParams.MinRatingCount}-{filterParams.MaxRatingCount}]:{checkResult.IsRaitingValid} Есть слова из блеклиста:{checkResult.HasBlackwords} Магазин:{checkResult.IsShop}");
+                    //Console.WriteLine($"https://youla.ru/p{product.IdString} Отзывов[{filterParams.MinRatingCount}-{filterParams.MaxRatingCount}]:{checkResult.IsRaitingValid} Есть слова из блеклиста:{checkResult.HasBlackwords} Магазин:{checkResult.IsShop}");
+                    Console.WriteLine($"https://youla.ru/p{product.IdString}");
                     Console.ResetColor();
                     count++;
                 }
@@ -795,7 +804,6 @@ namespace Fix
                 Parser parser = new Parser();
                 //await parser.JoinDatabases();
                 await parser.Run();
-                
             }
             catch (Exception e)
             {
