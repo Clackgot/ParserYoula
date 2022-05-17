@@ -823,16 +823,27 @@ namespace Fix
                 IEnumerable<Product> disctinctProducts = products.GroupBy(x => x.Owner.idString).Select(y => y.First());
                 var dublicates = products.Except(disctinctProducts);
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("Удалены:");
-
-                foreach (var product in dublicates)
+                
+                if(dublicates.Count() > 0)
                 {
-                    Console.WriteLine(product.Name);
+                    Console.WriteLine("Удалены:");
+
+                    foreach (var product in dublicates)
+                    {
+                        Console.WriteLine(product.Name);
+                    }
+                    Console.WriteLine();
+                    Console.WriteLine("-----------------------------------------------------");
                 }
+                else
+                {
+                    Console.WriteLine("Дублей не обнаружено");
+                }
+
 
                 Console.ResetColor();
                 int count = 0;
-                
+                Console.WriteLine("Результаты:");
                 foreach (Product product in disctinctProducts)
                 {
                     await context.AddAsync(product);
