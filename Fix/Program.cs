@@ -12,6 +12,15 @@ namespace Fix
 {
     internal class Program
     {
+        public static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
+        {
+            // Unix timestamp is seconds past epoch
+            DateTime dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            dateTime = dateTime.AddSeconds(unixTimeStamp).ToLocalTime();
+            return dateTime;
+        }
+
+
         public partial class DataBaseContext : DbContext
         {
             public string DbName { get; } = "database.db";
@@ -140,7 +149,7 @@ namespace Fix
                 {
                     valid.Cells[row, col].Value = $"https://youla.ru/p{product.IdString}";
                     valid.Cells[row, col + 1].Value = product.Name;
-                    valid.Cells[row, col + 2].Value = product.DatePublished;
+                    valid.Cells[row, col + 2].Value = UnixTimeStampToDateTime((double)product.DatePublished).ToString("dd.MM.yyyy");
                     row++;
                 }
 
@@ -163,8 +172,7 @@ namespace Fix
                 {
                     invalid.Cells[row, col].Value = $"https://youla.ru/p{product.Item1.IdString}";
                     invalid.Cells[row, col + 1].Value = product.Item1.Name;
-                    invalid.Cells[row, col + 2].Value = product.Item1.DatePublished;
-
+                    invalid.Cells[row, col + 2].Value = UnixTimeStampToDateTime((double)product.Item1.DatePublished).ToString("dd.MM.yyyy");
                     invalid.Cells[row, col + 3].Value = product.Item2.IsShop;
 
                     if (product.Item2.IsShop)
