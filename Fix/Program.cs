@@ -147,7 +147,7 @@ namespace Fix
 
                 foreach (var product in ValidProducts)
                 {
-                    valid.Cells[row, col].Value = $"https://youla.ru/p{product.IdString}";
+                    valid.Cells[row, col].Hyperlink = new Uri($"https://youla.ru/p{product.IdString}");
                     valid.Cells[row, col + 1].Value = product.Name;
                     valid.Cells[row, col + 2].Value = UnixTimeStampToDateTime((double)product.DatePublished).ToString("dd.MM.yyyy");
                     row++;
@@ -170,7 +170,7 @@ namespace Fix
 
                 foreach (var product in InvalidProducts)
                 {
-                    invalid.Cells[row, col].Value = $"https://youla.ru/p{product.Item1.IdString}";
+                    invalid.Cells[row, col].Hyperlink = new Uri($"https://youla.ru/p{product.Item1.IdString}");
                     invalid.Cells[row, col + 1].Value = product.Item1.Name;
                     invalid.Cells[row, col + 2].Value = UnixTimeStampToDateTime((double)product.Item1.DatePublished).ToString("dd.MM.yyyy");
                     invalid.Cells[row, col + 3].Value = product.Item2.IsShop;
