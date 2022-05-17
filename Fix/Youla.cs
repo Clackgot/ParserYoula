@@ -179,22 +179,19 @@ namespace Fix
         }
 
 
-        public static async IAsyncEnumerable<Product> GetAllProducts(SearchParams searchParams)
+        public static async Task<IEnumerable<Product>> GetAllProducts(SearchParams searchParams)
         {
+            List<Product> allProducts = new List<Product>();
             int i = 0;
             while (true)
             {
-                bool isEmpty = true;
                 searchParams.Page = i;
                 IEnumerable<Product> products = await GetProducts(searchParams);
-                foreach (Product product in products)
-                {
-                    isEmpty = false;
-                    yield return product;
-                }
-                if (isEmpty) break;
+                allProducts.AddRange(products);
+                if (products.Count() == 0) break;
                 i++;
             }
+            return allProducts;
         }
     }
 }

@@ -4,6 +4,7 @@ using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using static Fix.Program.Parser.Filter;
 using static Fix.Yola;
@@ -107,6 +108,8 @@ namespace Fix
                     {
                         filterResult.IsShop = false;
                     }
+
+                    
 
                     //context.Products.Select
 
@@ -816,10 +819,21 @@ namespace Fix
                 Console.WriteLine("Ссылка:");
                 string link = Console.ReadLine();
                 SearchParams searchParams = new SearchParams(link);
-                IAsyncEnumerable<Product> products = GetAllProducts(searchParams);
+                IEnumerable<Product> products = await GetAllProducts(searchParams);
+                IEnumerable<Product> disctinctProducts = products.GroupBy(x => x.Owner.idString).Select(y => y.First());
+                var dublicates = products.Except(disctinctProducts);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Удалены:");
+
+                foreach (var product in dublicates)
+                {
+                    Console.WriteLine(product.Name);
+                }
+
+                Console.ResetColor();
                 int count = 0;
                 
-                await foreach (Product product in products)
+                foreach (Product product in disctinctProducts)
                 {
                     await context.AddAsync(product);
                     FilterResult checkResult = await Check(product, filterParams);
