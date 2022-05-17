@@ -164,10 +164,50 @@ namespace Fix
                     invalid.Cells[row, col].Value = $"https://youla.ru/p{product.Item1.IdString}";
                     invalid.Cells[row, col + 1].Value = product.Item1.Name;
                     invalid.Cells[row, col + 2].Value = product.Item1.DatePublished;
+
                     invalid.Cells[row, col + 3].Value = product.Item2.IsShop;
+
+                    if (product.Item2.IsShop)
+                    {
+                        invalid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
+                    else
+                    {
+                        invalid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+                    
                     invalid.Cells[row, col + 4].Value = product.Item2.IsRaitingValid;
+                    if (product.Item2.IsRaitingValid)
+                    {
+                        invalid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+                    else
+                    {
+                        invalid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
+
+
                     invalid.Cells[row, col + 5].Value = product.Item2.HasBlackwords;
+                    if (product.Item2.HasBlackwords)
+                    {
+                        invalid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
+                    else
+                    {
+                        invalid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+
                     invalid.Cells[row, col + 6].Value = product.Item2.IsExsist;
+                    if (product.Item2.IsExsist)
+                    {
+                        invalid.Cells[row, col + 6].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
+                    else
+                    {
+                        invalid.Cells[row, col + 6].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+
+
                     row++;
                 }
 
