@@ -120,24 +120,30 @@ namespace Fix
 
         public static async Task<Product> GetProduct(string id)
         {
-            try
+            Product product;
+            while (true)
             {
-                Uri requestUri = new Uri($"https://api.youla.io/api/v1/product/{id}");
-                HttpClient client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(5);
-                HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
-                HttpResponseMessage response = await client.SendAsync(httpRequest);
-                Stream contentStream = await response.Content.ReadAsStreamAsync();
-                JsonTextReader reader = new JsonTextReader(new StreamReader(contentStream));
-                JObject json = await JObject.LoadAsync(reader);
-                JToken data = json["data"];
-                Product product = JsonConvert.DeserializeObject<Product>(data.ToString());
-                if (product.Owner.settings.CallSettings == null) throw new Exception();
-                return product;
-            }
-            catch
-            {
-                throw new Exception();
+                try
+                {
+                    Uri requestUri = new Uri($"https://api.youla.io/api/v1/product/{id}");
+                    HttpClient client = new HttpClient();
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
+                    HttpResponseMessage response = await client.SendAsync(httpRequest);
+                    Stream contentStream = await response.Content.ReadAsStreamAsync();
+                    JsonTextReader reader = new JsonTextReader(new StreamReader(contentStream));
+                    JObject json = await JObject.LoadAsync(reader);
+                    JToken data = json["data"];
+                    product = JsonConvert.DeserializeObject<Product>(data.ToString());
+                    if (product.Owner.settings.CallSettings == null) continue;
+                    return product;
+
+                }
+                catch
+                {
+                    throw new Exception();
+                }
+
             }
         }
         public static async Task<IEnumerable<Product>> GetProducts(SearchParams searchParams)
@@ -165,9 +171,14 @@ namespace Fix
                     try
                     {
                         product.Owner = GetUserByIdAsync(product.Owner.idString).Result;
-                        //product.Owner.settings = GetProduct(product.IdString).Result.Owner.settings;
-                        Product productResult = GetProduct(product.IdString).Result;
-                        product.Owner.settings = productResult.Owner.settings;
+                        product.Owner.settings = GetProduct(product.IdString).Result.Owner.settings;
+                        //Product productResult = GetProduct(product.IdString).Result;
+                        //while (productResult.Owner.settings.CallSettings.p2p_call_enabled == null)
+                        //{
+                        //    productResult = GetProduct(product.IdString).Result;
+                        //}
+                        
+                        //product.Owner.settings = productResult.Owner.settings;
                     }
                     catch(Exception e)
                     {

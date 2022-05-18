@@ -96,6 +96,7 @@ namespace Fix
 
         private void SaveToExcel()
         {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             var package = new ExcelPackage();
 
             var valid = package.Workbook.Worksheets.Add("Валид");
@@ -115,6 +116,7 @@ namespace Fix
                 valid.Cells[row, col].Hyperlink = new Uri($"https://youla.ru/p{product.IdString}");
                 valid.Cells[row, col + 1].Value = product.Name;
                 valid.Cells[row, col + 2].Value = Tools.UnixTimeStampToDateTime((double)product.DatePublished).ToString("dd.MM.yyyy");
+
 
 
                 if (product.Owner.settings.CallSettings?.any_call_enabled != null)
