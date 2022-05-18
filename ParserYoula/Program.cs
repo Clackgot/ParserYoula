@@ -3,6 +3,32 @@ using System.Linq;
 
 namespace ParserYoula
 {
+                }
+
+
+                if (isCorrect) yield return product;
+            }
+        }
+    }
+
+
+
+
+
+
+                }
+
+
+                if (isCorrect) yield return product;
+            }
+        }
+    }
+
+
+
+
+
+
 
 
     class Program
