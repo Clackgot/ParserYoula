@@ -117,7 +117,19 @@ namespace Fix
             public string Sid { get; set; }
         }
 
-
+        public static async Task<Product> GetProduct(string id)
+        {
+            Uri requestUri = new Uri($"https://api.youla.io/api/v1/product/{id}");
+            HttpClient client = new HttpClient();
+            HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
+            HttpResponseMessage response = await client.SendAsync(httpRequest);
+            Stream contentStream = await response.Content.ReadAsStreamAsync();
+            JsonTextReader reader = new JsonTextReader(new StreamReader(contentStream));
+            JObject json = await JObject.LoadAsync(reader);
+            JToken data = json["data"];
+            Product product = JsonConvert.DeserializeObject<Product>(data.ToString());
+            return product;
+        }
         public static async Task<IEnumerable<Product>> GetProducts(SearchParams searchParams)
         {
             Uri requestUri = await searchParams.GetUri();
@@ -134,6 +146,7 @@ namespace Fix
             {
                 Console.WriteLine($"[{current}|{count}] {product.Name}");
                 product.Owner = await GetUserByIdAsync(product.Owner.idString);
+                product.Owner.settings = (await GetProduct(product.IdString)).Owner.settings;
                 current++;
             }
             return productsResponse.Products;

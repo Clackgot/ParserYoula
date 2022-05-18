@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -144,6 +145,9 @@ namespace Fix
                 valid.Cells[1, 1].Value = "Ссылка";
                 valid.Cells[1, 2].Value = "Название";
                 valid.Cells[1, 3].Value = "Дата публикации";
+                valid.Cells[1, 4].Value = "Любые звонки";
+                valid.Cells[1, 5].Value = "Системные звонки";
+                valid.Cells[1, 6].Value = "P2P звонки";
 
                 int row = 2;
                 int col = 1;
@@ -153,6 +157,40 @@ namespace Fix
                     valid.Cells[row, col].Hyperlink = new Uri($"https://youla.ru/p{product.IdString}");
                     valid.Cells[row, col + 1].Value = product.Name;
                     valid.Cells[row, col + 2].Value = UnixTimeStampToDateTime((double)product.DatePublished).ToString("dd.MM.yyyy");
+
+                    if(product.Owner.settings.CallSettings.any_call_enabled)
+                    {
+                        valid.Cells[row, col + 3].Value = "Доступны";
+                        valid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+                    else
+                    {
+                        valid.Cells[row, col + 3].Value = "Недоступны";
+                        valid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
+
+                    if (product.Owner.settings.CallSettings.system_call_enabled)
+                    {
+                        valid.Cells[row, col + 4].Value = "Доступны";
+                        valid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+                    else
+                    {
+                        valid.Cells[row, col + 4].Value = "Недоступны";
+                        valid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
+
+
+                    if (product.Owner.settings.CallSettings.p2p_call_enabled)
+                    {
+                        valid.Cells[row, col + 5].Value = "Доступны";
+                        valid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+                    else
+                    {
+                        valid.Cells[row, col + 5].Value = "Недоступны";
+                        valid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
                     row++;
                 }
 
@@ -839,7 +877,7 @@ namespace Fix
                 {
                     Console.WriteLine("Дублей не обнаружено");
                 }
-
+                
 
                 Console.ResetColor();
                 int count = 0;
@@ -863,11 +901,36 @@ namespace Fix
                     Console.ResetColor();
                     count++;
                 }
+
+                ValidProducts.Sort(new ProductNewer());
+
                 SaveToExcel();
                 
                 await context.SaveChangesAsync();
             }
         }
+
+
+        public class ProductNewer : Comparer<Product>
+        {
+            public override int Compare([AllowNull] Product x, [AllowNull] Product y)
+            {
+                if(x.DatePublished < y.DatePublished)
+                {
+                    return 1;
+                }
+                else if(x.DatePublished > y.DatePublished)
+                {
+                    return -1;
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+        }
+
+
 
         static async Task Main(string[] args)
         {
@@ -886,7 +949,6 @@ namespace Fix
                 Console.ResetColor();
                 Console.ReadKey();
             }
-
 
         }
     }

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
 namespace Fix
@@ -75,6 +76,18 @@ namespace Fix
         public bool vk_chat_messages_enabled { get; set; }
         public Location location { get; set; }
         public bool display_phone { get; set; }
+
+        [JsonProperty("call_settings")]
+        [NotMapped]
+        public CallSettings CallSettings { get; set; }
+
+    }
+
+    public class CallSettings : JsonEntity
+    {
+        public bool any_call_enabled { get; set; }
+        public bool system_call_enabled { get; set; }
+        public bool p2p_call_enabled { get; set; }
     }
 
     public class Store : JsonEntity
