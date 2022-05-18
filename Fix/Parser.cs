@@ -116,40 +116,67 @@ namespace Fix
                 valid.Cells[row, col + 1].Value = product.Name;
                 valid.Cells[row, col + 2].Value = Tools.UnixTimeStampToDateTime((double)product.DatePublished).ToString("dd.MM.yyyy");
 
-                if (product.Owner.settings.CallSettings.any_call_enabled)
+
+                if (product.Owner.settings.CallSettings?.any_call_enabled != null)
                 {
-                    valid.Cells[row, col + 3].Value = "Доступны";
-                    valid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    if ((bool)product.Owner.settings.CallSettings.any_call_enabled)
+                    {
+                        valid.Cells[row, col + 3].Value = "Доступны";
+                        valid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+                    else
+                    {
+                        valid.Cells[row, col + 3].Value = "Недоступны";
+                        valid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
                 }
                 else
                 {
-                    valid.Cells[row, col + 3].Value = "Недоступны";
-                    valid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    valid.Cells[row, col + 3].Value = "Неизвестно";
+                    valid.Cells[row, col + 3].Style.Font.Color.SetColor(System.Drawing.Color.Blue);
                 }
 
-                if (product.Owner.settings.CallSettings.system_call_enabled)
+                if (product.Owner.settings.CallSettings?.system_call_enabled != null)
                 {
-                    valid.Cells[row, col + 4].Value = "Доступны";
-                    valid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    if ((bool)product.Owner.settings.CallSettings.system_call_enabled)
+                    {
+                        valid.Cells[row, col + 4].Value = "Доступны";
+                        valid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+                    else
+                    {
+                        valid.Cells[row, col + 4].Value = "Недоступны";
+                        valid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
                 }
                 else
                 {
-                    valid.Cells[row, col + 4].Value = "Недоступны";
-                    valid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    valid.Cells[row, col + 4].Value = "Неизвестно";
+                    valid.Cells[row, col + 4].Style.Font.Color.SetColor(System.Drawing.Color.Blue);
                 }
-
-
-                if (product.Owner.settings.CallSettings.p2p_call_enabled)
+                if (product.Owner.settings.CallSettings?.p2p_call_enabled != null)
                 {
-                    valid.Cells[row, col + 5].Value = "Доступны";
-                    valid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    if ((bool)product.Owner.settings.CallSettings.p2p_call_enabled)
+                    {
+                        valid.Cells[row, col + 5].Value = "Доступны";
+                        valid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                    }
+                    else
+                    {
+                        valid.Cells[row, col + 5].Value = "Недоступны";
+                        valid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    }
                 }
                 else
                 {
-                    valid.Cells[row, col + 5].Value = "Недоступны";
-                    valid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Red);
+                    valid.Cells[row, col + 5].Value = "Неизвестно";
+                    valid.Cells[row, col + 5].Style.Font.Color.SetColor(System.Drawing.Color.Blue);
                 }
-                valid.Cells[row, col + 6].Value = product.Owner.display_phone_num;
+                if (!string.IsNullOrWhiteSpace(product.Owner.display_phone_num))
+                {
+                    valid.Cells[row, col + 6].Value = product.Owner.display_phone_num;
+                    valid.Cells[row, col + 6].Style.Font.Color.SetColor(System.Drawing.Color.Green);
+                }
 
                 row++;
             }

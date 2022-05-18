@@ -83,15 +83,15 @@ namespace Fix
 
         [JsonProperty("call_settings")]
         [NotMapped]
-        public CallSettings CallSettings { get; set; }
+        public CallSettings? CallSettings { get; set; }
 
     }
 
     public class CallSettings : JsonEntity
     {
-        public bool any_call_enabled { get; set; }
-        public bool system_call_enabled { get; set; }
-        public bool p2p_call_enabled { get; set; }
+        public bool? any_call_enabled { get; set; }
+        public bool? system_call_enabled { get; set; }
+        public bool? p2p_call_enabled { get; set; }
     }
 
     public class Store : JsonEntity
