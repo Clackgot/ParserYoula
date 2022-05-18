@@ -75,7 +75,8 @@ namespace Fix
                     public int MinRatingCount { get; set; } = 0;
                     public int MaxRatingCount { get; set; } = 2;
 
-                    public List<string> Blackwords { get; set; } = new List<string>();
+                    public List<string> BlackwordsTitle { get; set; } = new List<string>();
+                    public List<string> BlackwordsDescription { get; set; } = new List<string>();
 
                     public bool withShops { get; set; }
                 }
@@ -96,12 +97,17 @@ namespace Fix
                     filterResult.IsRaitingValid = product.Owner.rating_mark_cnt <= filterParams.MaxRatingCount &&
                                                 product.Owner.rating_mark_cnt >= filterParams.MinRatingCount;
                     bool hasBlackwords = false;
-                    foreach (var blackWord in filterParams.Blackwords)
+                    foreach (var blackWord in filterParams.BlackwordsTitle)
                     {
-                        hasBlackwords = product.Name.ToLowerInvariant().Contains(blackWord.ToLower()) ||
-                                         product.Description.ToLowerInvariant().Contains(blackWord.ToLower());
+                        hasBlackwords = product.Name.ToLowerInvariant().Contains(blackWord.ToLower());
                         if (hasBlackwords) break;
                     }
+                    foreach (var blackWord in filterParams.BlackwordsDescription)
+                    {
+                        hasBlackwords = product.Description.ToLowerInvariant().Contains(blackWord.ToLower());
+                        if (hasBlackwords) break;
+                    }
+
                     filterResult.HasBlackwords = hasBlackwords;
 
                     if (!filterParams.withShops) { filterResult.IsShop = product.Owner.store != null; }
@@ -126,7 +132,8 @@ namespace Fix
             {
                 if(!File.Exists("filter.json"))
                 {
-                    filterParams.Blackwords = new List<string>() { "example1", "example2"};
+                    filterParams.BlackwordsDescription = new List<string>() { "Слово_в_описании", "Фраза в описании"};
+                    filterParams.BlackwordsTitle = new List<string>() { "Слово_в_названии", "Фраза в названии"};
                     var filterJson = JsonConvert.SerializeObject(filterParams);
                     File.WriteAllText("filter.json", filterJson);
                 }
