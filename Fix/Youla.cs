@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 
@@ -144,12 +145,13 @@ namespace Fix
             int count = productsResponse.Products.Length;
             int current = 1;
             ParallelOptions parallelOptions = new ParallelOptions();
-            parallelOptions.MaxDegreeOfParallelism = 5;
+            parallelOptions.MaxDegreeOfParallelism = 15;
             
             Parallel.ForEach(productsResponse.Products, parallelOptions, product => 
             {
 
                 Console.WriteLine($"[{current}|{count}] {product.Name}");
+                int errorsCount = 0;
                 while (true)
                 {
                     try
@@ -157,7 +159,31 @@ namespace Fix
                         product.Owner = GetUserByIdAsync(product.Owner.idString).Result;
                         product.Owner.settings = GetProduct(product.IdString).Result.Owner.settings;
                     }
-                    catch { }
+                    catch 
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        errorsCount++;
+                        if (parallelOptions.MaxDegreeOfParallelism > 2 && errorsCount > 5)
+                        {
+                            int threads = parallelOptions.MaxDegreeOfParallelism;
+
+                            parallelOptions.MaxDegreeOfParallelism--;
+                            int threadsCurrent = parallelOptions.MaxDegreeOfParallelism;
+                            
+                            Console.WriteLine($"Уменьшено кол-во потоков с {threads} до {threadsCurrent}");
+                            TimeSpan delay = TimeSpan.FromSeconds(3);
+                            Console.WriteLine($"Ждём {delay.TotalSeconds} секунд");
+                            Thread.Sleep(delay);
+                            
+                        }
+                        else
+                        {
+                            TimeSpan delay = TimeSpan.FromSeconds(2);
+                            Console.WriteLine($"Ждём {delay.TotalSeconds} секунд");
+                            Thread.Sleep(delay);
+                        }
+                        Console.ResetColor();
+                    }
                     break;
                 }
                 current++;
