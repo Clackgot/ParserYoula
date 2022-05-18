@@ -121,6 +121,7 @@ namespace Fix
         {
             Uri requestUri = new Uri($"https://api.youla.io/api/v1/product/{id}");
             HttpClient client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(5);
             HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
             HttpResponseMessage response = await client.SendAsync(httpRequest);
             Stream contentStream = await response.Content.ReadAsStreamAsync();
@@ -142,13 +143,32 @@ namespace Fix
             ProductsResponse productsResponse = JsonConvert.DeserializeObject<ProductsResponse>(json.ToString());
             int count = productsResponse.Products.Length;
             int current = 1;
-            foreach (var product in productsResponse.Products)
+            ParallelOptions parallelOptions = new ParallelOptions();
+            parallelOptions.MaxDegreeOfParallelism = 5;
+            
+            Parallel.ForEach(productsResponse.Products, parallelOptions, product => 
             {
+
                 Console.WriteLine($"[{current}|{count}] {product.Name}");
-                product.Owner = await GetUserByIdAsync(product.Owner.idString);
-                product.Owner.settings = (await GetProduct(product.IdString)).Owner.settings;
+                while (true)
+                {
+                    try
+                    {
+                        product.Owner = GetUserByIdAsync(product.Owner.idString).Result;
+                        product.Owner.settings = GetProduct(product.IdString).Result.Owner.settings;
+                    }
+                    catch { }
+                    break;
+                }
                 current++;
-            }
+            });
+            //foreach (var product in productsResponse.Products)
+            //{
+            //    Console.WriteLine($"[{current}|{count}] {product.Name}");
+            //    product.Owner = await GetUserByIdAsync(product.Owner.idString);
+            //    product.Owner.settings = (await GetProduct(product.IdString)).Owner.settings;
+            //    current++;
+            //}
             return productsResponse.Products;
         }
 
@@ -182,6 +202,7 @@ namespace Fix
         {
             Uri requestUri = new Uri($"https://api.youla.io/api/v1/user/{userId}");
             HttpClient client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(5);
             HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
             HttpResponseMessage response = await client.SendAsync(httpRequest);
             Stream contentStream = await response.Content.ReadAsStreamAsync();
