@@ -157,10 +157,14 @@ namespace Fix
                     try
                     {
                         product.Owner = GetUserByIdAsync(product.Owner.idString).Result;
-                        product.Owner.settings = GetProduct(product.IdString).Result.Owner.settings;
+                        //product.Owner.settings = GetProduct(product.IdString).Result.Owner.settings;
+                        Product productResult = GetProduct(product.IdString).Result;
+                        product.Owner.settings = productResult.Owner.settings;
+                        product.Owner.display_phone_num = productResult.Owner.display_phone_num;
                     }
-                    catch 
+                    catch(Exception e)
                     {
+                        Console.WriteLine(e.Message);
                         Console.ForegroundColor = ConsoleColor.Yellow;
                         errorsCount++;
                         if (parallelOptions.MaxDegreeOfParallelism > 2 && errorsCount > 5)

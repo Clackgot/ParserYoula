@@ -65,6 +65,10 @@ namespace Fix
         //public Rating_Detailed[] rating_detailed { get; set; }
         //public object subscription_date_added { get; set; }
         public bool is_subscribed { get; set; }
+
+        [NotMapped]
+        public string? display_phone_num { get; set; }
+
     }
 
     public class Settings : JsonEntity
