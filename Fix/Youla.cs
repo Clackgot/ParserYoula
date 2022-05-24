@@ -141,7 +141,7 @@ namespace Fix
                 }
                 catch
                 {
-                    throw new Exception();
+                    return null;
                 }
 
             }
@@ -164,14 +164,14 @@ namespace Fix
             Parallel.ForEach(productsResponse.Products, parallelOptions, product => 
             {
 
-                Console.WriteLine($"[{current}|{count}] {product.Name}");
+                Console.WriteLine($"{product.Name}");
                 int errorsCount = 0;
                 while (true)
                 {
                     try
                     {
                         product.Owner = GetUserByIdAsync(product.Owner.idString).Result;
-                        product.Owner.settings = GetProduct(product.IdString).Result.Owner.settings;
+                        product.Owner.settings = GetProduct(product.IdString).Result?.Owner?.settings;
                         //Product productResult = GetProduct(product.IdString).Result;
                         //while (productResult.Owner.settings.CallSettings.p2p_call_enabled == null)
                         //{
@@ -182,8 +182,6 @@ namespace Fix
                     }
                     catch(Exception e)
                     {
-                        Console.WriteLine(e.Message);
-                        Console.ForegroundColor = ConsoleColor.Yellow;
                         errorsCount++;
                         if (parallelOptions.MaxDegreeOfParallelism > 2 && errorsCount > 5)
                         {
@@ -194,14 +192,12 @@ namespace Fix
                             
                             Console.WriteLine($"Уменьшено кол-во потоков с {threads} до {threadsCurrent}");
                             TimeSpan delay = TimeSpan.FromSeconds(3);
-                            Console.WriteLine($"Ждём {delay.TotalSeconds} секунд");
                             Thread.Sleep(delay);
                             
                         }
                         else
                         {
                             TimeSpan delay = TimeSpan.FromSeconds(2);
-                            Console.WriteLine($"Ждём {delay.TotalSeconds} секунд");
                             Thread.Sleep(delay);
                         }
                         Console.ResetColor();
@@ -217,7 +213,7 @@ namespace Fix
             //    product.Owner.settings = (await GetProduct(product.IdString)).Owner.settings;
             //    current++;
             //}
-            return productsResponse.Products;
+            return productsResponse.Products.ToList().Where(p=>p != null);
         }
 
         private static async Task<City> GetCityBySlug(string city)

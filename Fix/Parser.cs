@@ -838,6 +838,27 @@ namespace Fix
             await context.SaveChangesAsync();
         }
 
+
+        private bool isValid(Product p)
+        {
+            if (p != null && p?.Owner != null && p?.Owner?.settings != null && p?.Owner?.settings?.CallSettings != null)
+            {
+
+                bool callsAvaible = !(p.Owner.settings.CallSettings.p2p_call_enabled == false &&
+                p.Owner.settings.CallSettings.system_call_enabled == false &&
+                p.Owner.settings.CallSettings.any_call_enabled == false);
+
+
+
+
+                return callsAvaible;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public async Task Run()
         {
 
@@ -845,26 +866,38 @@ namespace Fix
             Console.WriteLine("Ссылка:");
             string link = Console.ReadLine();
             SearchParams searchParams = new SearchParams(link);
-            IEnumerable<Product> products = await GetAllProducts(searchParams);
-            IEnumerable<Product> disctinctProducts = products.GroupBy(x => x.Owner.idString).Select(y => y.First());
+            IEnumerable<Product> products = await GetAllProducts(searchParams);//Все объяления
+            IEnumerable<Product> disctinctProducts = products.GroupBy(x => x.Owner.idString).Select(y => y.First());//Удаление объявлений от того же продавца
             var dublicates = products.Except(disctinctProducts);
             Console.ForegroundColor = ConsoleColor.Green;
 
+
+
+
+            //disctinctProducts = disctinctProducts.Where(p =>
+            //!(p.Owner.settings.CallSettings.p2p_call_enabled == false &&
+            //p.Owner.settings.CallSettings.system_call_enabled == false &&
+            //p.Owner.settings.CallSettings.any_call_enabled == false)).ToList();
+
+            disctinctProducts = disctinctProducts.Where(p => isValid(p)).ToList();
+
+
             if (dublicates.Count() > 0)
             {
-                Console.WriteLine("Удалены:");
+                Console.WriteLine("Удалены дубли:");
 
                 foreach (var product in dublicates)
                 {
                     Console.WriteLine(product.Name);
                 }
-                Console.WriteLine();
                 Console.WriteLine("-----------------------------------------------------");
             }
             else
             {
                 Console.WriteLine("Дублей не обнаружено");
             }
+
+
 
 
             Console.ResetColor();
