@@ -847,11 +847,11 @@ namespace Fix
                 bool callsAvaible = !(p.Owner.settings.CallSettings.p2p_call_enabled == false &&
                 p.Owner.settings.CallSettings.system_call_enabled == false &&
                 p.Owner.settings.CallSettings.any_call_enabled == false);
+                bool stateValid = !p.IsArchived && !p.IsSold && !p.IsBlocked && !p.IsExpiring;
 
 
 
-
-                return callsAvaible;
+                return callsAvaible && stateValid;
             }
             else
             {
