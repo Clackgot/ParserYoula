@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32421.90
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parser", "Fix\Parser.csproj", "{043FB3F4-36CD-4806-8FB3-72B8A1CC8246}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Parser", "Parser\Parser.csproj", "{043FB3F4-36CD-4806-8FB3-72B8A1CC8246}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
