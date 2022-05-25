@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Fix
+namespace Parser
 {
     public class ProductNewer : Comparer<Product>
     {

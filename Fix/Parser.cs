@@ -6,10 +6,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using static Fix.Parser.Filter;
-using static Fix.Yola;
+using static Parser.Parser.Filter;
+using static Parser.Yola;
 
-namespace Fix
+namespace Parser
 {
     public class Parser
     {

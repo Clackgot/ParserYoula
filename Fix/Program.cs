@@ -2,7 +2,7 @@
 using System.IO;
 using System.Threading.Tasks;
 
-namespace Fix
+namespace Parser
 {
 
     internal class Program
@@ -13,7 +13,6 @@ namespace Fix
             try
             {
                 Parser parser = new Parser();
-                //await parser.JoinDatabases();
                 await parser.Run();
             }
             catch (Exception e)

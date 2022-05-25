@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Fix
+namespace Parser
 {
     public static class Tools
     {

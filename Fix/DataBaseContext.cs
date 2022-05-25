@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.IO;
 
-namespace Fix
+namespace Parser
 {
     public class DataBaseContext : DbContext
     {
