@@ -71,8 +71,9 @@ namespace Parser
                 StringValue link = new StringValue("Ссылка:");
                 link.Read();
 
+
                 Int32Value citiesCount = new Int32Value("Количество городов:");
-                citiesCount.Read();
+                while (citiesCount.Value < 1 || citiesCount.Value > 1000) citiesCount.Read();
 
                 for (int i = 0; i < citiesCount.Value; i++)
                 {
@@ -86,7 +87,7 @@ namespace Parser
             {
                 File.WriteAllText("log.txt", e.ToString());
                 Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine(e.Message);
+                Console.WriteLine(e);
                 Console.ResetColor();
                 Console.ReadKey();
             }
