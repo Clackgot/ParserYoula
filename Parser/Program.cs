@@ -33,7 +33,9 @@ namespace Parser
             ScrollMenu scrollMenu = new ScrollMenu()
             {
                 EraseAfterClose = true,
-                Padding = new DustInTheWind.ConsoleTools.Controls.Thickness(0, -5, 0, 0),
+                Margin = new DustInTheWind.ConsoleTools.Controls.Thickness(0,1,0,0),
+                HorizontalAlignment = DustInTheWind.ConsoleTools.Controls.HorizontalAlignment.Left,
+                CursorVisibility = false,
             };
 
             scrollMenu.AddItems(new IMenuItem[]
