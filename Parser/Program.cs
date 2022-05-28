@@ -12,24 +12,6 @@ namespace Parser
     {
         static async Task Main(string[] args)
         {
-            //Console.WriteLine(MainMenu.ShowMainMenu());
-
-
-
-            //MenuItem item = new MenuItem();
-            //item.Items.Add(new MenuItem() 
-            //{ 
-            //    Name = "Ссылка", 
-            //    Run = (a) => { Console.WriteLine("Выбрана ссылка"); return null; },
-            //});
-            //item.Items.Add(new MenuItem() { Name = "Пункт"});
-            //item.Items.Add(new MenuItem() { Name = "Показать список"});
-            //item.Items.Add(new MenuItem() { Name = "Выход"});
-
-            //item.Show();
-
-
-
             ScrollMenu scrollMenu = new ScrollMenu()
             {
                 EraseAfterClose = true,
@@ -58,6 +40,17 @@ namespace Parser
 
     internal class RandomCityByLinkCommand : ICommand
     {
+        private readonly Parser parser = new Parser();
+        public RandomCityByLinkCommand()
+        {
+            Console.CancelKeyPress += Console_CancelKeyPress;
+        }
+
+        private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        {
+            parser.SaveResults().Wait();
+        }
+
         public bool IsActive => true;
 
         public void Execute()
@@ -65,16 +58,16 @@ namespace Parser
             Console.Clear();
             while (true)
             {
+                
                 try
                 {
-                    Parser parser = new Parser();
+
                     //string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=10000&attributes[price][from]=1000";
 
-                    //StringValue link = new StringValue("Ссылка:");
-                    //link.Read();
                     Console.WriteLine("Ссылка:");
                     string link = Console.ReadLine();
 
+                    Console.WriteLine("Городов:");
                     if (!int.TryParse(Console.ReadLine(), out int citiesCount)) continue;
                     if (citiesCount < 1) continue;
                     
@@ -85,7 +78,7 @@ namespace Parser
                         parser.RunWithRandomCity(link).Wait();
                     }
                     parser.SaveResults().Wait();
-
+                    return;
 
                 }
                 catch (Exception e)
@@ -94,7 +87,9 @@ namespace Parser
                     Console.ForegroundColor = ConsoleColor.DarkRed;
                     Console.WriteLine(e);
                     Console.ResetColor();
+                    parser.SaveResults().Wait();
                     Console.ReadKey();
+                    return;
                 }
             }
         }
@@ -102,6 +97,17 @@ namespace Parser
 
     internal class CityByLinkCommand : ICommand
     {
+        private readonly Parser parser = new Parser();
+        public CityByLinkCommand()
+        {
+            Console.CancelKeyPress += Console_CancelKeyPress;
+        }
+
+        private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        {
+            parser.SaveResults().Wait();
+        }
+
         public bool IsActive => true;
 
         public void Execute()
@@ -109,7 +115,6 @@ namespace Parser
             Console.Clear();
             try
             {
-                Parser parser = new Parser();
                 //string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=10000&attributes[price][from]=1000";
                 StringValue link = new StringValue("Ссылка");
                 link.Read();
