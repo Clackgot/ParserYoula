@@ -33,7 +33,7 @@ namespace Parser
             ScrollMenu scrollMenu = new ScrollMenu()
             {
                 EraseAfterClose = true,
-                Margin = new DustInTheWind.ConsoleTools.Controls.Thickness(0,1,0,0),
+                Margin = new DustInTheWind.ConsoleTools.Controls.Thickness(0, 1, 0, 0),
                 HorizontalAlignment = DustInTheWind.ConsoleTools.Controls.HorizontalAlignment.Left,
                 CursorVisibility = false,
             };
@@ -63,33 +63,39 @@ namespace Parser
         public void Execute()
         {
             Console.Clear();
-            try
+            while (true)
             {
-                Parser parser = new Parser();
-                //string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=10000&attributes[price][from]=1000";
-
-                StringValue link = new StringValue("Ссылка:");
-                link.Read();
-
-
-                Int32Value citiesCount = new Int32Value("Количество городов:");
-                while (citiesCount.Value < 1 || citiesCount.Value > 1000) citiesCount.Read();
-
-                for (int i = 0; i < citiesCount.Value; i++)
+                try
                 {
-                    parser.RunWithRandomCity(link.Value).Wait();
+                    Parser parser = new Parser();
+                    //string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=10000&attributes[price][from]=1000";
+
+                    //StringValue link = new StringValue("Ссылка:");
+                    //link.Read();
+                    Console.WriteLine("Ссылка:");
+                    string link = Console.ReadLine();
+
+                    if (!int.TryParse(Console.ReadLine(), out int citiesCount)) continue;
+                    if (citiesCount < 1) continue;
+                    
+
+
+                    for (int i = 0; i < citiesCount; i++)
+                    {
+                        parser.RunWithRandomCity(link).Wait();
+                    }
+                    parser.SaveResults().Wait();
+
+
                 }
-                parser.SaveResults().Wait();
-
-
-            }
-            catch (Exception e)
-            {
-                File.WriteAllText("log.txt", e.ToString());
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                Console.WriteLine(e);
-                Console.ResetColor();
-                Console.ReadKey();
+                catch (Exception e)
+                {
+                    File.WriteAllText("log.txt", e.ToString());
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    Console.WriteLine(e);
+                    Console.ResetColor();
+                    Console.ReadKey();
+                }
             }
         }
     }

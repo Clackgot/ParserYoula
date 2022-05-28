@@ -127,7 +127,7 @@ namespace Parser
                 {
                     Uri requestUri = new Uri($"https://api.youla.io/api/v1/product/{id}");
                     HttpClient client = new HttpClient();
-                    client.Timeout = TimeSpan.FromSeconds(5);
+                    client.Timeout = TimeSpan.FromSeconds(15);
                     HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
                     HttpResponseMessage response = await client.SendAsync(httpRequest);
                     Stream contentStream = await response.Content.ReadAsStreamAsync();
@@ -246,7 +246,7 @@ namespace Parser
         {
             Uri requestUri = new Uri($"https://api.youla.io/api/v1/user/{userId}");
             HttpClient client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(15);
             HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
             HttpResponseMessage response = await client.SendAsync(httpRequest);
             Stream contentStream = await response.Content.ReadAsStreamAsync();
@@ -279,7 +279,7 @@ namespace Parser
             List<City> allCities = new List<City>();
             Uri requestUri = new Uri("https://api.youla.io/api/v1/geo/cities");
             HttpClient client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(15);
             HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
             HttpResponseMessage response = await client.SendAsync(httpRequest);
             Stream contentStream = await response.Content.ReadAsStreamAsync();
