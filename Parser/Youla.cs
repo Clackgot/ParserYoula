@@ -127,7 +127,7 @@ namespace Parser
                 {
                     Uri requestUri = new Uri($"https://api.youla.io/api/v1/product/{id}");
                     HttpClient client = new HttpClient();
-                    client.Timeout = TimeSpan.FromSeconds(5);
+                    client.Timeout = TimeSpan.FromSeconds(15);
                     HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
                     HttpResponseMessage response = await client.SendAsync(httpRequest);
                     Stream contentStream = await response.Content.ReadAsStreamAsync();
@@ -246,7 +246,7 @@ namespace Parser
         {
             Uri requestUri = new Uri($"https://api.youla.io/api/v1/user/{userId}");
             HttpClient client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(15);
             HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
             HttpResponseMessage response = await client.SendAsync(httpRequest);
             Stream contentStream = await response.Content.ReadAsStreamAsync();
@@ -271,5 +271,23 @@ namespace Parser
             }
             return allProducts;
         }
+
+
+
+        public static async Task<IEnumerable<City>> GetAllCities()
+        {
+            List<City> allCities = new List<City>();
+            Uri requestUri = new Uri("https://api.youla.io/api/v1/geo/cities");
+            HttpClient client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(15);
+            HttpRequestMessage httpRequest = new HttpRequestMessage(HttpMethod.Get, requestUri);
+            HttpResponseMessage response = await client.SendAsync(httpRequest);
+            Stream contentStream = await response.Content.ReadAsStreamAsync();
+            JsonTextReader reader = new JsonTextReader(new StreamReader(contentStream));
+            JObject json = await JObject.LoadAsync(reader);
+            allCities = JsonConvert.DeserializeObject<List<City>>(json["data"].ToString());
+            return allCities;
+        }
+
     }
 }

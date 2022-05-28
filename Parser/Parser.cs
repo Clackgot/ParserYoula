@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DustInTheWind.ConsoleTools.Controls;
+using DustInTheWind.ConsoleTools.Controls.Menus;
+using DustInTheWind.ConsoleTools.Controls.Menus.MenuItems;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using OfficeOpenXml;
 using System;
@@ -13,6 +16,11 @@ namespace Parser
 {
     public class Parser
     {
+        public async Task SaveResults()
+        {
+            SaveToExcel();
+            await context.SaveChangesAsync();
+        }
         private static DataBaseContext context = new DataBaseContext();
 
         private List<Product> ValidProducts = new List<Product>();
@@ -30,6 +38,8 @@ namespace Parser
 
                 public bool withShops { get; set; }
             }
+
+            
             public class FilterResult : JsonEntity
             {
                 public bool IsExsist { get; set; }
@@ -40,10 +50,10 @@ namespace Parser
                 public bool IsSold { get; set; }
                 public bool IsBlocked { get; set; }
                 public bool IsExpiring { get; set; }
-                public bool IsValid() => 
-                    !IsShop && 
-                    !HasBlackwords && 
-                    IsRaitingValid && 
+                public bool IsValid() =>
+                    !IsShop &&
+                    !HasBlackwords &&
+                    IsRaitingValid &&
                     !IsExsist &&
                     !IsArchived &&
                     !IsSold &&
@@ -260,13 +270,61 @@ namespace Parser
 
             File.WriteAllBytes("result.xlsx", excel);
         }
-        public async Task Run()
-        {
 
-            //string link = "https://youla.ru/pyatigorsk/zhivotnye/tovary?attributes[price][to]=10000&attributes[price][from]=9000";
-            Console.WriteLine("Ссылка:");
-            string link = Console.ReadLine();
+
+        public async Task DisplayMenu()
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task RunWithRandomCity(string link)
+        {
+            Random r = new Random();
             SearchParams searchParams = new SearchParams(link);
+            var cities = await GetAllCities();
+            //var randomCity = cities.ElementAt(r.Next(1, cities.Count() - 1));
+            City randomCity = cities.OrderBy(x => r.Next()).Take(1).FirstOrDefault();
+            searchParams.CityId = randomCity.Id;
+            searchParams.CitySlug = randomCity.Slug;
+
+            await GetProductsBySearchParams(searchParams);
+        }
+
+        public async Task RunWithRandomCityFilterTopScore(string link)
+        {
+            Random r = new Random();
+            SearchParams searchParams = new SearchParams(link);
+            var cities = await GetAllCities();
+            cities = cities.Where(c => c.TopScore == 0);
+            //var randomCity = cities.ElementAt(r.Next(1, cities.Count() - 1));
+            City randomCity = cities.OrderBy(x => r.Next()).Take(1).FirstOrDefault();
+            searchParams.CityId = randomCity.Id;
+            searchParams.CitySlug = randomCity.Slug;
+
+            await GetProductsBySearchParams(searchParams);
+        }
+
+        public async Task RunWithRandomCityFilterProductCountLessThen(string link, int productLessThenCount)
+        {
+            Random r = new Random();
+            SearchParams searchParams = new SearchParams(link);
+            var cities = await GetAllCities();
+            cities = cities.Where(c => c.ProductsCount < productLessThenCount);
+            //var randomCity = cities.ElementAt(r.Next(1, cities.Count() - 1));
+            City randomCity = cities.OrderBy(x => r.Next()).Take(1).FirstOrDefault();
+            searchParams.CityId = randomCity.Id;
+            searchParams.CitySlug = randomCity.Slug;
+
+            await GetProductsBySearchParams(searchParams);
+        }
+
+        public async Task GetProductsBySearchParams(SearchParams searchParams)
+        {
+            
+            var cities = await GetAllCities();
+            var currentCity = cities.FirstOrDefault(c => c.Slug == searchParams.CitySlug);
+            Console.WriteLine($"Город: {currentCity.Name}");
+
             IEnumerable<Product> products = await GetAllProducts(searchParams);//Все объяления
             IEnumerable<Product> disctinctProducts = products.GroupBy(x => x.Owner.idString).Select(y => y.First());//Удаление объявлений от того же продавца
             var dublicates = products.Except(disctinctProducts);
@@ -315,9 +373,13 @@ namespace Parser
 
             ValidProducts.Sort(new ProductNewer());
 
-            SaveToExcel();
+        }
 
-            await context.SaveChangesAsync();
+        public async Task RunWithCityFromLink(string link)
+        {
+            SearchParams searchParams = new SearchParams(link);
+            await GetProductsBySearchParams(searchParams);
         }
     }
+
 }
