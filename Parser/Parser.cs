@@ -290,6 +290,34 @@ namespace Parser
             await GetProductsBySearchParams(searchParams);
         }
 
+        public async Task RunWithRandomCityFilterTopScore(string link)
+        {
+            Random r = new Random();
+            SearchParams searchParams = new SearchParams(link);
+            var cities = await GetAllCities();
+            cities = cities.Where(c => c.TopScore == 0);
+            //var randomCity = cities.ElementAt(r.Next(1, cities.Count() - 1));
+            City randomCity = cities.OrderBy(x => r.Next()).Take(1).FirstOrDefault();
+            searchParams.CityId = randomCity.Id;
+            searchParams.CitySlug = randomCity.Slug;
+
+            await GetProductsBySearchParams(searchParams);
+        }
+
+        public async Task RunWithRandomCityFilterProductCountLessThen(string link, int productLessThenCount)
+        {
+            Random r = new Random();
+            SearchParams searchParams = new SearchParams(link);
+            var cities = await GetAllCities();
+            cities = cities.Where(c => c.ProductsCount < productLessThenCount);
+            //var randomCity = cities.ElementAt(r.Next(1, cities.Count() - 1));
+            City randomCity = cities.OrderBy(x => r.Next()).Take(1).FirstOrDefault();
+            searchParams.CityId = randomCity.Id;
+            searchParams.CitySlug = randomCity.Slug;
+
+            await GetProductsBySearchParams(searchParams);
+        }
+
         public async Task GetProductsBySearchParams(SearchParams searchParams)
         {
             
