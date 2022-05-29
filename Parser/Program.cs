@@ -51,8 +51,6 @@ namespace Parser
                     },
             }); ;
             scrollMenu.Display();
-
-
         }
     }
 

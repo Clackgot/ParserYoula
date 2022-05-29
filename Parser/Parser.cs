@@ -122,7 +122,8 @@ namespace Parser
             else
             {
                 var json = File.ReadAllText("filter.json");
-                filterParams = JsonConvert.DeserializeObject<FilterParams>(json);
+                var loadedFilterParams = JsonConvert.DeserializeObject<FilterParams>(json);
+                filterParams = loadedFilterParams;
             }
         }
 
@@ -323,7 +324,8 @@ namespace Parser
             
             var cities = await GetAllCities();
             var currentCity = cities.FirstOrDefault(c => c.Slug == searchParams.CitySlug);
-            Console.WriteLine($"Город: {currentCity.Name}");
+            if(currentCity != null) Console.WriteLine($"Город: {currentCity?.Name}");
+            else if(searchParams.CitySlug == "all") Console.WriteLine("Город: Любой");
 
             IEnumerable<Product> products = await GetAllProducts(searchParams);//Все объяления
             IEnumerable<Product> disctinctProducts = products.GroupBy(x => x.Owner.idString).Select(y => y.First());//Удаление объявлений от того же продавца
