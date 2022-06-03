@@ -55,9 +55,7 @@ public class User : IEquatable<User?>
     public string? DisableCallAlertText { get; set; }
 
 
-
     public int? RatingMarkCount { get; set; }
-
 
     public bool? AnyCallEnabled { get; set; }
     public bool? SystemCallEnabled { get; set; }

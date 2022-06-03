@@ -1,21 +1,15 @@
-﻿using AngleSharp.Html.Dom;
-using AngleSharp.Html.Parser;
-using Newtonsoft.Json;
+﻿using AngleSharp.Html.Parser;
 using Newtonsoft.Json.Linq;
 using ParserYoula.Data;
 using System.Collections.Specialized;
-using System.Diagnostics;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks.Dataflow;
 using System.Web;
 
 
 
-SearchBody searchBody = new SearchBody("https://youla.ru/all/zhivotnye?attributes[price][to]=200000&attributes[price][from]=0");
+SearchBody searchBody = new SearchBody("https://youla.ru/rostov-na-donu/zhivotnye/koshki");
 
 App parser = new App(searchBody);
 await parser.Run();
-
 
 public class App
 {
@@ -27,6 +21,7 @@ public class App
     public List<Product> Valid { get; set; } = new List<Product>();
     public List<Product> Invalid { get; set; } = new List<Product>();
 
+    private readonly Filter filter = new Filter();
 
     public async Task Run()
     {
@@ -38,7 +33,9 @@ public class App
             await foreach (var product in YoulaApi.GetProductsAsyncEnumerable(searchBody))
             {
 
-                Console.WriteLine($"{product?.Id} {product?.Owner?.AnyCallEnabled}");
+                Console.WriteLine($"{product?.ShortLinkYoula} {product?.Owner?.RatingMarkCount}");
+
+                filter.IsValid(product);
 
                 isEmpty = false;
             }
@@ -106,7 +103,6 @@ public static class YoulaApi
         return products;
     }
 
-
     public static async Task<IEnumerable<Product>> GetProductsAsync(SearchBody searchBody)
     {
         searchBody = searchBody ?? throw new ArgumentNullException(nameof(searchBody));
@@ -148,6 +144,7 @@ public static class YoulaApi
 
 
         products = products.Select(p => GetProductInfoAsync(p).Result).ToList();
+        //products = products.Select(p => GetOwnerVkInfoAsync(p).Result).ToList();
         products = products.Select(p => GetOwnerInfoAsync(p).Result).ToList();
 
         return products;
@@ -176,7 +173,7 @@ public static class YoulaApi
         request.Headers.Add("x-app-id", "web/3");
         request.Headers.Add("x-youla-splits", "8a=5|8b=7|8c=0|8m=0|8v=0|8z=0|16a=0|16b=0|64a=6|64b=0|100a=73|100b=47|100c=0|100d=0|100m=0");
 
-        var body = $"{{\"operationName\":\"catalogProductsBoard\",\"variables\":{{\"sort\":\"{searchBody.SortField}\",\"attributes\":[{{\"slug\":\"price\",\"value\":null,\"from\":{searchBody.PriceFrom},\"to\":{searchBody.PriceTo}}},{{\"slug\":\"categories\",\"value\":[\"{searchBody.Category}\"],\"from\":null,\"to\":null}}],\"datePublished\":null,\"location\":{{\"latitude\":null,\"longitude\":null,\"city\":null,\"distanceMax\":null}},\"search\":\"\",\"cursor\":\"{{\\\"page\\\":{searchBody.Page - 1},\\\"totalProductsCount\\\":0,\\\"dateUpdatedTo\\\":1653932782}}\"}},\"extensions\":{{\"persistedQuery\":{{\"version\":1,\"sha256Hash\":\"6e7275a709ca5eb1df17abfb9d5d68212ad910dd711d55446ed6fa59557e2602\"}}}}}}";
+        var body = $"{{\"operationName\":\"catalogProductsBoard\",\"variables\":{{\"sort\":\"{searchBody.SortField}\",\"attributes\":[{{\"slug\":\"price\",\"value\":null,\"from\":{searchBody.PriceFrom ?? "null"},\"to\":{searchBody.PriceTo ?? "null"}}},{{\"slug\":\"categories\",\"value\":[\"{searchBody.Category}\"],\"from\":null,\"to\":null}}],\"datePublished\":null,\"location\":{{\"latitude\":null,\"longitude\":null,\"city\":null,\"distanceMax\":null}},\"search\":\"\",\"cursor\":\"{{\\\"page\\\":{searchBody.Page - 1},\\\"totalProductsCount\\\":0,\\\"dateUpdatedTo\\\":1653932782}}\"}},\"extensions\":{{\"persistedQuery\":{{\"version\":1,\"sha256Hash\":\"6e7275a709ca5eb1df17abfb9d5d68212ad910dd711d55446ed6fa59557e2602\"}}}}}}";
         request.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
         HttpResponseMessage? response = await client.SendAsync(request);
         string? jsonString = await response.Content.ReadAsStringAsync();
@@ -195,12 +192,16 @@ public static class YoulaApi
         foreach (var product in products)
         {
             var productInfo = await GetProductInfoAsync(product);
-            //var productWithOwnerInfo = await GetOwnerInfoAsync(productInfo);
+            //var productWithOwnerInfo = await GetOwnerVkInfoAsync(productInfo);
+            var productWithOwnerInfo = await GetOwnerInfoAsync(productInfo);
             yield return productInfo;
         }
     }
 
     private static bool? BoolParse(string? value) => bool.TryParse(value, out var tempBool) ? tempBool : null;
+
+    private static int? IntParse(string? value) => int.TryParse(value, out var tempBool) ? tempBool : null;
+
 
     public static async Task<Product> GetProductInfoAsync(Product product)
     {
@@ -243,6 +244,33 @@ public static class YoulaApi
     }
 
     public static async Task<Product> GetOwnerInfoAsync(Product product)
+    {
+        product = product ?? throw new ArgumentNullException(nameof(product));
+        if (product.Owner?.Id == null) return product;
+        HttpRequestMessage request = new HttpRequestMessage()
+        {
+            Method = HttpMethod.Get,
+            RequestUri = new Uri($"https://api.youla.io/api/v1/user/{product?.Owner?.Id}"),
+        };
+
+        HttpResponseMessage? response = await client.SendAsync(request);
+        string? jsonString = await response.Content.ReadAsStringAsync();
+
+        JToken? ownerToken = JObject.Parse(jsonString)?["data"];
+
+        product.Owner.RatingMarkCount = IntParse(ownerToken?["rating_mark_cnt"]?.ToString());
+        return product;
+
+    }
+
+
+    /// <summary>
+    /// Получить информацию о продавце в ВК
+    /// </summary>
+    /// <param name="product"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    public static async Task<Product> GetOwnerVkInfoAsync(Product product)
     {
         product = product ?? throw new ArgumentNullException(nameof(product));
         if (product.Owner == null) return product;
@@ -288,15 +316,18 @@ public class SearchBody
 
 public class Filter
 {
+    private List<Predicate<Product>> FilterFuncionns = new List<Predicate<Product?>>();
+
+
     /// <summary>
     /// Отзывов больше чем
     /// </summary>
-    public int RatingMarkCntMoreThen { get; set; } = 0;
+    public int RatingMarkCntMoreThen { get; set; } = -1;
 
     /// <summary>
     /// Отзывов меньше чем
     /// </summary>
-    public int RatingMarkCntLessThen { get; set; } = 0;
+    public int RatingMarkCntLessThen { get; set; } = 3;
 
     /// <summary>
     /// Может быть магазином
@@ -306,15 +337,97 @@ public class Filter
     /// <summary>
     /// Исключить слова из заголовка
     /// </summary>
-    public List<string> ExcludeFromTitle { get; set; } = new List<string>();
+    public List<string> ExcludeWordsFromTitle { get; set; } = new List<string>() { "кошка", "сено" };
     /// <summary>
     /// Исключить слова из текста
     /// </summary>
-    public List<string> ExcludeFromDescription { get; set; } = new List<string>();
+    public List<string> ExcludeWordsFromDescription { get; set; } = new List<string>() { "кошка", "сено" };
+
+
+    private bool RatingMarksValid(Product product)
+    {
+
+        int? marksCount = product?.Owner?.RatingMarkCount;
+        bool ratingValid = marksCount != null ?
+            marksCount < RatingMarkCntLessThen && marksCount > RatingMarkCntMoreThen :
+            false;
+        return ratingValid;
+    }
+
+    private bool NotContainWordsFormBlackListInTitle(Product product)
+    {
+        if (string.IsNullOrEmpty(product.Name)) return true;
+
+        string title = product.Name;
+
+        foreach (string? blackListWord in ExcludeWordsFromTitle)
+        {
+            int i = title.ToLowerInvariant().IndexOf(blackListWord.ToLowerInvariant());
+            if (i >= 0)
+            {
+                var start = title.Substring(0, i);
+                var middle = title.Substring(i, blackListWord.Length);
+                var end = title.Substring(i + blackListWord.Length);
+                Console.Write(start);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write(middle);
+                Console.ResetColor();
+                Console.WriteLine(end);
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+        return true;
+    }
+    private bool NotContainWordsFormBlackListInDescription(Product product)
+    {
+        if (string.IsNullOrEmpty(product.Description)) return true;
+
+        string description = product.Description.Trim().Replace("\n", " ");
+
+        foreach (string? blackListWord in ExcludeWordsFromDescription)
+        {
+            int i = description.ToLowerInvariant().IndexOf(blackListWord.ToLowerInvariant());
+            if (i >= 0)
+            {
+                var start = description.Substring(0, i);
+                var middle = description.Substring(i, blackListWord.Length);
+                var end = description.Substring(i + blackListWord.Length);
+                Console.Write(start);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write(middle);
+                Console.ResetColor();
+                Console.WriteLine(end);
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+        return true;
+    }
+
 
     public bool IsValid(Product? product)
     {
         if (product == null) return false;
-        throw new NotImplementedException();
+        FilterFuncionns.Add(RatingMarksValid);
+        //FilterFuncionns.Add(NotContainWordsFormBlackListInTitle);
+        FilterFuncionns.Add(NotContainWordsFormBlackListInDescription);
+
+
+        foreach (var check in FilterFuncionns)
+        {
+            if (!check(product))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
