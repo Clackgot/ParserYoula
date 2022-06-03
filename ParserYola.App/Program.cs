@@ -2,36 +2,64 @@
 using AngleSharp.Html.Parser;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using ParserYoula.Data;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks.Dataflow;
 using System.Web;
 
+
+
 SearchBody searchBody = new SearchBody("https://youla.ru/all/zhivotnye?attributes[price][to]=200000&attributes[price][from]=0");
 
+App parser = new App(searchBody);
+await parser.Run();
+
+
+public class App
+{
+    private readonly DataBaseContext context = new DataBaseContext();
+
+    private readonly SearchBody searchBody;
+
+    public List<Product> Parsed { get; set; } = new List<Product>();
+    public List<Product> Valid { get; set; } = new List<Product>();
+    public List<Product> Invalid { get; set; } = new List<Product>();
+
+
+    public async Task Run()
+    {
+        while (true)
+        {
+            int page = 0;
+            bool isEmpty = true;
+            searchBody.Page = page;
+            await foreach (var product in YoulaApi.GetProductsAsyncEnumerable(searchBody))
+            {
+
+                Console.WriteLine($"{product?.Id} {product?.Owner?.AnyCallEnabled}");
+
+                isEmpty = false;
+            }
+
+
+            if (isEmpty) break;
+            page++;
+        }
+    }
 
 
 
-
-//while (true)
-//{
-//    int page = 0;
-//    bool isEmpty = true;
-//    searchBody.Page = page;
-//    await foreach (var product in Graphql.GetProductsAsyncEnumerable(searchBody))
-//    {
-//        Console.WriteLine($"{product?.Id} {product?.Owner?.IsChatLocked} {product?.Owner?.IsPhoneLocked} {product?.Owner?.IsPhoneDisabled}");
-//        isEmpty = false;
-//    }
-//    if (isEmpty) break;
-//    page++;
-//}
+    public App(SearchBody search)
+    {
+        searchBody = search;
+    }
+}
 
 
 
-
-public static class Graphql
+public static class YoulaApi
 {
     private static readonly HtmlParser parser = new HtmlParser();
     private static readonly HttpClient client = new HttpClient();
@@ -81,7 +109,7 @@ public static class Graphql
 
     public static async Task<IEnumerable<Product>> GetProductsAsync(SearchBody searchBody)
     {
-        searchBody = searchBody ?? throw new ArgumentNullException(nameof(searchBody));        
+        searchBody = searchBody ?? throw new ArgumentNullException(nameof(searchBody));
         HttpRequestMessage request = new HttpRequestMessage()
         {
             Method = HttpMethod.Post,
@@ -108,10 +136,10 @@ public static class Graphql
         string? jsonString = await response.Content.ReadAsStringAsync();
 
         List<Product>? products = JToken.Parse(jsonString)?["data"]?["feed"]?["items"]?
-            .Where(i=>!string.IsNullOrEmpty(i["product"]?["id"]?.ToString()))?
-            .Select(x=>x["product"]!)?
-            .Select(x=> new Product() 
-            { 
+            .Where(i => !string.IsNullOrEmpty(i["product"]?["id"]?.ToString()))?
+            .Select(x => x["product"]!)?
+            .Select(x => new Product()
+            {
                 Id = x["id"]?.ToString(),
                 ShortLinkYoula = x["id"]?.ToString() != null ? $"https://youla.ru/p{x["id"]?.ToString()}" : null,
                 Name = x["name"]?.ToString(),
@@ -203,7 +231,10 @@ public static class Graphql
             Id = productToken?["owner"]?["id"]?.ToString(),
             Name = productToken?["owner"]?["name"]?.ToString(),
             Phone = productToken?["owner"]?["display_phone_num"]?.ToString(),
-            IsShop = BoolParse(productToken?["owner"]?["is_shop"]?.ToString()),
+            IsShop = productToken?["owner"]?["store"] != null,
+            AnyCallEnabled = BoolParse(productToken?["owner"]?["settings"]?["call_settings"]?["any_call_enabled"]?.ToString()),
+            P2pCallEnabled = BoolParse(productToken?["owner"]?["settings"]?["call_settings"]?["p2p_call_enabled"]?.ToString()),
+            SystemCallEnabled = BoolParse(productToken?["owner"]?["settings"]?["call_settings"]?["system_call_enabled"]?.ToString()),
         };
 
 
@@ -248,119 +279,42 @@ public class SearchBody
         NameValueCollection queryParams = HttpUtility.ParseQueryString(uri.Query);
         Category = uri?.Segments?.LastOrDefault();
         PriceFrom = queryParams?.Get("attributes[price][from]");
-        PriceTo = queryParams?.Get("attributes[price][to]");   
-        SortField = queryParams?.Get("attributes[sort_field]") ?? "DATE_PUBLISHED_DESC";   
+        PriceTo = queryParams?.Get("attributes[price][to]");
+        SortField = queryParams?.Get("attributes[sort_field]") ?? "DATE_PUBLISHED_DESC";
     }
 }
 
 
-public class Product : IEquatable<Product?>
+
+public class Filter
 {
+    /// <summary>
+    /// Отзывов больше чем
+    /// </summary>
+    public int RatingMarkCntMoreThen { get; set; } = 0;
 
-    public string? Id { get; set; }
-    public string? ShortLinkYoula { get; set; }
-    public string? ShortLinkVk { get; set; }
-    public string? Name { get; set; }
-    public string? Description { get; set; }
-    public string? PublishDate { get; set; }
-    public bool? IsPublished { get; set; }
-    public bool? IsSold { get; set; }
-    public bool? IsExpired { get; set; }
-    public bool? IsBlocked { get; set; }
-    public bool? IsArchived { get; set; }
-    public bool? IsDeleted { get; internal set; }
-    public User? Owner { get; set; }
-    public override bool Equals(object? other)
+    /// <summary>
+    /// Отзывов меньше чем
+    /// </summary>
+    public int RatingMarkCntLessThen { get; set; } = 0;
+
+    /// <summary>
+    /// Может быть магазином
+    /// </summary>
+    public bool IncludeStores { get; set; } = false;
+
+    /// <summary>
+    /// Исключить слова из заголовка
+    /// </summary>
+    public List<string> ExcludeFromTitle { get; set; } = new List<string>();
+    /// <summary>
+    /// Исключить слова из текста
+    /// </summary>
+    public List<string> ExcludeFromDescription { get; set; } = new List<string>();
+
+    public bool IsValid(Product? product)
     {
-        //Последовательность проверки должна быть именно такой.
-        //Если не проверить на null объект other, то other.GetType() может выбросить //NullReferenceException.            
-        if (other == null)
-            return false;
-
-        //Если ссылки указывают на один и тот же адрес, то их идентичность гарантирована.
-        if (object.ReferenceEquals(this, other))
-            return true;
-
-        //Если класс находится на вершине иерархии или просто не имеет наследников, то можно просто
-        //сделать Vehicle tmp = other as Vehicle; if(tmp==null) return false; 
-        //Затем вызвать экземплярный метод, сразу передав ему объект tmp.
-        if (this.GetType() != other.GetType())
-            return false;
-
-        return this.Equals(other as Product);
-
+        if (product == null) return false;
+        throw new NotImplementedException();
     }
-    public bool Equals(Product? other)
-    {
-        if (other == null)
-            return false;
-
-        //Здесь сравнение по ссылкам необязательно.
-        //Если вы уверены, что многие проверки на идентичность будут отсекаться на проверке по ссылке - //можно имплементировать.
-        if (object.ReferenceEquals(this, other))
-            return true;
-
-
-        return other.Id == this.Id || other?.Owner?.Id == this?.Owner?.Id;
-    }
-
-    public static bool operator ==(Product? left, Product? right) => left?.Id == right?.Id || left?.Owner?.Id == right?.Owner?.Id;
-    public static bool operator !=(Product? left, Product? right) => !(left == right);
-
-    public override int GetHashCode() => HashCode.Combine(Id);
-    
-}
-
-public class User : IEquatable<User?>
-{
-    public string? Id { get; set; }
-    public string? Name { get; set; }
-    public string? Phone { get; set; }
-    public string? CallTime { get; set; }
-    public bool? IsShop { get; set; }
-
-
-
-    public bool? IsChatLocked { get; set; }
-    public bool? IsPhoneLocked { get; set; }
-    public bool? IsPhoneDisabled { get; set; }
-    public string? DisableCallAlertText { get; set; }
-
-    public override bool Equals(object? other)
-    {
-        //Последовательность проверки должна быть именно такой.
-        //Если не проверить на null объект other, то other.GetType() может выбросить //NullReferenceException.            
-        if (other == null)
-            return false;
-
-        //Если ссылки указывают на один и тот же адрес, то их идентичность гарантирована.
-        if (object.ReferenceEquals(this, other))
-            return true;
-
-        //Если класс находится на вершине иерархии или просто не имеет наследников, то можно просто
-        //сделать Vehicle tmp = other as Vehicle; if(tmp==null) return false; 
-        //Затем вызвать экземплярный метод, сразу передав ему объект tmp.
-        if (this.GetType() != other.GetType())
-            return false;
-
-        return this.Equals(other as User);
-
-    }
-    public bool Equals(User? other)
-    {
-        if (other == null)
-            return false;
-
-        //Здесь сравнение по ссылкам необязательно.
-        //Если вы уверены, что многие проверки на идентичность будут отсекаться на проверке по ссылке - //можно имплементировать.
-        if (object.ReferenceEquals(this, other))
-            return true;
-
-        return other.Id == this.Id;
-    }
-    public static bool operator ==(User? left, User? right) => left?.Id == right?.Id;
-    public static bool operator !=(User? left, User? right) => !(left == right);
-    public override int GetHashCode() => HashCode.Combine(Id);
-
-
 }
