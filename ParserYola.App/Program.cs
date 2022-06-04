@@ -117,14 +117,16 @@ public class App
         Console.WriteLine($"Уже в базе: [{Valid!.Count - uniqProducts.Count}]");
         Valid = uniqProducts;
 
-        context.AddRange(Valid.Where(p=>p?.Owner != null).Select(p=>p.Owner!).ToList());
-        context.SaveChanges();
+        context.AddRange(Valid.Where(p=>p?.Owner != null).Select(p=>p.Owner!));
+        int addedCount = context.SaveChanges();
+        Console.WriteLine($"Записано в базу: [{addedCount}]");
     }
 
     private void Save(object? sender, ConsoleCancelEventArgs e)
     {
         CanCanceled = false;
-        Console.WriteLine($"Валид: [{Valid.Count}]\t Невалид: [{Invalid.Count}]");
+        Console.WriteLine($"Валид: [{Valid.Count}]");
+        Console.WriteLine($"Невалид: [{Invalid.Count}]");
         SaveToDb();
         excelContext.Save(Valid);
     }
