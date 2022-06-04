@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Data.Entity.Infrastructure;
 
 namespace ParserYoula.Data
 {

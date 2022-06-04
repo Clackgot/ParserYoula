@@ -6,8 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Web;
 
 
-
-SearchBody searchBody = new SearchBody("https://youla.ru/rostov-na-donu/zhivotnye/koshki");
+Console.WriteLine("Ссылка:");
+string link = Console.ReadLine() ?? "";
+SearchBody searchBody = new SearchBody(link);
 
 App parser = new App(searchBody);
 await parser.Run();
