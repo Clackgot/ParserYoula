@@ -17,9 +17,6 @@ public class App
     private readonly CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
     private readonly CancellationToken token;
 
-
-
-
     private readonly DataBaseContext context = new DataBaseContext();
 
     private readonly SearchBody searchBody;
@@ -29,6 +26,8 @@ public class App
     public List<Product> Invalid { get; set; } = new List<Product>();
 
     private readonly Filter filter = new Filter();
+
+    private bool CanCanceled = true;
 
     public async Task Run()
     {
@@ -56,7 +55,10 @@ public class App
                     isEmpty = false;
                 }
             }
-            catch (OperationCanceledException ex) { }
+            catch (OperationCanceledException ex)
+            {
+                if(CanCanceled) Save(this, null);
+            }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
@@ -72,19 +74,36 @@ public class App
         searchBody = search;
         token = cancelTokenSource.Token;
         Console.CancelKeyPress += CancelToken;
-        Console.CancelKeyPress += Save;
-        
+        //Console.CancelKeyPress += Save;
+
     }
 
     private void CancelToken(object? sender, ConsoleCancelEventArgs e)
     {
         cancelTokenSource.Cancel();
+        e.Cancel = true;
+    }
+
+    private void SaveToDb()
+    {
+        List<User> validUsers = Valid?.Where(p => p?.Owner != null).Select(p => p.Owner!).ToList() ?? new List<User>();
+        var result = validUsers.Except(context.Users);
+
+
+        var removed = validUsers.Except(result);
+
+        Console.WriteLine($"Уже в базе: [{removed.Count()}]\t Уникальных: [{result.Count()}]");
+
+
+        context.AddRange(result);
+        int count = context.SaveChanges();
     }
 
     private void Save(object? sender, ConsoleCancelEventArgs e)
     {
-        Console.WriteLine($"Сохранено [{Valid.Count}|{Invalid.Count}]");
-        Thread.Sleep(3000);
+        CanCanceled = false;
+        Console.WriteLine($"Валид: [{Valid.Count}]\t Невалид: [{Invalid.Count}]");
+        SaveToDb();
     }
 }
 
@@ -219,13 +238,16 @@ public static class YoulaApi
                 Name = x["name"]?.ToString(),
             })?
             .ToList() ?? new List<Product>();
-        //token.ThrowIfCancellationRequested();
+        token.ThrowIfCancellationRequested();
         foreach (var product in products)
         {
-            token.ThrowIfCancellationRequested();
+
             var productInfo = await GetProductInfoAsync(product);
             //var productWithOwnerInfo = await GetOwnerVkInfoAsync(productInfo);
             var productWithOwnerInfo = await GetOwnerInfoAsync(productInfo);
+
+            token.ThrowIfCancellationRequested();
+
             yield return productInfo;
         }
     }
@@ -440,7 +462,6 @@ public class Filter
         }
         return true;
     }
-
 
     private bool ProductStateAvaible(Product product)
     {

@@ -6,7 +6,7 @@ namespace ParserYoula.Data
     public class DataBaseContext : DbContext
     {
         public string DbName { get; } = "database.db";
-        public DbSet<Product> Products { get; set; } = null!;
+        public DbSet<User> Users { get; set; } = null!;
         public DataBaseContext()
         {
             if (!File.Exists(DbName))

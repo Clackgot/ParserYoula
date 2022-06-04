@@ -54,11 +54,14 @@ public class User : IEquatable<User?>
     [NotMapped]
     public string? DisableCallAlertText { get; set; }
 
-
+    [NotMapped]
     public int? RatingMarkCount { get; set; }
 
+    [NotMapped]
     public bool? AnyCallEnabled { get; set; }
+    [NotMapped]
     public bool? SystemCallEnabled { get; set; }
+    [NotMapped]
     public bool? P2pCallEnabled { get; set; }
 
     public override bool Equals(object? other)
