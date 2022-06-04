@@ -2,6 +2,7 @@
 using Newtonsoft.Json.Linq;
 using ParserYoula.Data;
 using System.Collections.Specialized;
+using System.Runtime.CompilerServices;
 using System.Web;
 
 
@@ -13,6 +14,12 @@ await parser.Run();
 
 public class App
 {
+    private readonly CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+    private readonly CancellationToken token;
+
+
+
+
     private readonly DataBaseContext context = new DataBaseContext();
 
     private readonly SearchBody searchBody;
@@ -29,24 +36,31 @@ public class App
         {
             bool isEmpty = true;
             searchBody.Page = page;
-            await foreach (var product in YoulaApi.GetProductsAsyncEnumerable(searchBody))
+            try
             {
-                if (product == null) continue;
-                if(filter.IsValid(product))
+                await foreach (var product in YoulaApi.GetProductsAsyncEnumerable(searchBody, token))
                 {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Valid.Add(product);
+                    if (product == null) continue;
+                    if (filter.IsValid(product))
+                    {
+                        Console.ForegroundColor = ConsoleColor.Green;
+                        Valid.Add(product);
+                    }
+                    else
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Invalid.Add(product);
+                    }
+                    Console.WriteLine($"{product?.ShortLinkYoula}");
+                    Console.ResetColor();
+                    isEmpty = false;
                 }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Invalid.Add(product);
-                }
-                Console.WriteLine($"{product?.ShortLinkYoula}");
-                Console.ResetColor();
-                isEmpty = false;
             }
-            Console.WriteLine($"Валид:{Valid.Count}\tНевалид:{Invalid.Count}");
+            catch (OperationCanceledException ex) { }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
             if (isEmpty) break;
         }
     }
@@ -56,6 +70,21 @@ public class App
     public App(SearchBody search)
     {
         searchBody = search;
+        token = cancelTokenSource.Token;
+        Console.CancelKeyPress += CancelToken;
+        Console.CancelKeyPress += Save;
+        
+    }
+
+    private void CancelToken(object? sender, ConsoleCancelEventArgs e)
+    {
+        cancelTokenSource.Cancel();
+    }
+
+    private void Save(object? sender, ConsoleCancelEventArgs e)
+    {
+        Console.WriteLine($"Сохранено [{Valid.Count}|{Invalid.Count}]");
+        Thread.Sleep(3000);
     }
 }
 
@@ -153,7 +182,7 @@ public static class YoulaApi
         return products;
     }
 
-    public static async IAsyncEnumerable<Product> GetProductsAsyncEnumerable(SearchBody searchBody)
+    public static async IAsyncEnumerable<Product> GetProductsAsyncEnumerable(SearchBody searchBody, [EnumeratorCancellation] CancellationToken token = default)
     {
         searchBody = searchBody ?? throw new ArgumentNullException(nameof(searchBody));
         HttpRequestMessage request = new HttpRequestMessage()
@@ -190,9 +219,10 @@ public static class YoulaApi
                 Name = x["name"]?.ToString(),
             })?
             .ToList() ?? new List<Product>();
-
+        //token.ThrowIfCancellationRequested();
         foreach (var product in products)
         {
+            token.ThrowIfCancellationRequested();
             var productInfo = await GetProductInfoAsync(product);
             //var productWithOwnerInfo = await GetOwnerVkInfoAsync(productInfo);
             var productWithOwnerInfo = await GetOwnerInfoAsync(productInfo);
@@ -205,7 +235,7 @@ public static class YoulaApi
     private static int? IntParse(string? value) => int.TryParse(value, out var tempBool) ? tempBool : null;
 
 
-    public static async Task<Product> GetProductInfoAsync(Product product)
+    public static async Task<Product> GetProductInfoAsync(Product product, CancellationToken token = default)
     {
         product = product ?? throw new ArgumentNullException(nameof(product));
 
@@ -245,7 +275,7 @@ public static class YoulaApi
 
     }
 
-    public static async Task<Product> GetOwnerInfoAsync(Product product)
+    public static async Task<Product> GetOwnerInfoAsync(Product product, CancellationToken token = default)
     {
         product = product ?? throw new ArgumentNullException(nameof(product));
         if (product.Owner?.Id == null) return product;
