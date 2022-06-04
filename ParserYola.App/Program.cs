@@ -25,24 +25,29 @@ public class App
 
     public async Task Run()
     {
-        while (true)
+        for (int page = 0; page < int.MaxValue; page++)
         {
-            int page = 0;
             bool isEmpty = true;
             searchBody.Page = page;
             await foreach (var product in YoulaApi.GetProductsAsyncEnumerable(searchBody))
             {
-
-                Console.WriteLine($"{product?.ShortLinkYoula} {product?.Owner?.RatingMarkCount}");
-
-                filter.IsValid(product);
-
+                if (product == null) continue;
+                if(filter.IsValid(product))
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Valid.Add(product);
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Invalid.Add(product);
+                }
+                Console.WriteLine($"{product?.ShortLinkYoula}");
+                Console.ResetColor();
                 isEmpty = false;
             }
-
-
+            Console.WriteLine($"Валид:{Valid.Count}\tНевалид:{Invalid.Count}");
             if (isEmpty) break;
-            page++;
         }
     }
 
@@ -96,7 +101,6 @@ public static class YoulaApi
             .Select(x => new Product()
             {
                 Id = x["id"]?.ToString(),
-                ShortLinkYoula = x["id"]?.ToString() != null ? $"https://youla.ru/p{x["id"]?.ToString()}" : null,
                 Name = x["name"]?.ToString(),
             })?
             .ToList() ?? new List<Product>();
@@ -137,7 +141,6 @@ public static class YoulaApi
             .Select(x => new Product()
             {
                 Id = x["id"]?.ToString(),
-                ShortLinkYoula = x["id"]?.ToString() != null ? $"https://youla.ru/p{x["id"]?.ToString()}" : null,
                 Name = x["name"]?.ToString(),
             })?
             .ToList() ?? new List<Product>();
@@ -184,7 +187,6 @@ public static class YoulaApi
             .Select(x => new Product()
             {
                 Id = x["id"]?.ToString(),
-                ShortLinkYoula = x["id"]?.ToString() != null ? $"https://youla.ru/p{x["id"]?.ToString()}" : null,
                 Name = x["name"]?.ToString(),
             })?
             .ToList() ?? new List<Product>();
@@ -258,7 +260,7 @@ public static class YoulaApi
 
         JToken? ownerToken = JObject.Parse(jsonString)?["data"];
 
-        product.Owner.RatingMarkCount = IntParse(ownerToken?["rating_mark_cnt"]?.ToString());
+        product!.Owner.RatingMarkCount = IntParse(ownerToken?["rating_mark_cnt"]?.ToString());
         return product;
 
     }
@@ -314,9 +316,10 @@ public class SearchBody
 
 
 
+
 public class Filter
 {
-    private List<Predicate<Product>> FilterFuncionns = new List<Predicate<Product?>>();
+    private List<Predicate<Product>> FilterFuncionns = new List<Predicate<Product>>();
 
 
     /// <summary>
@@ -343,17 +346,14 @@ public class Filter
     /// </summary>
     public List<string> ExcludeWordsFromDescription { get; set; } = new List<string>() { "кошка", "сено" };
 
-
     private bool RatingMarksValid(Product product)
     {
-
         int? marksCount = product?.Owner?.RatingMarkCount;
         bool ratingValid = marksCount != null ?
             marksCount < RatingMarkCntLessThen && marksCount > RatingMarkCntMoreThen :
             false;
         return ratingValid;
     }
-
     private bool NotContainWordsFormBlackListInTitle(Product product)
     {
         if (string.IsNullOrEmpty(product.Name)) return true;
@@ -365,9 +365,9 @@ public class Filter
             int i = title.ToLowerInvariant().IndexOf(blackListWord.ToLowerInvariant());
             if (i >= 0)
             {
-                var start = title.Substring(0, i);
+                var start = title[..i];
                 var middle = title.Substring(i, blackListWord.Length);
-                var end = title.Substring(i + blackListWord.Length);
+                var end = title[(i + blackListWord.Length)..];
                 Console.Write(start);
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write(middle);
@@ -393,9 +393,9 @@ public class Filter
             int i = description.ToLowerInvariant().IndexOf(blackListWord.ToLowerInvariant());
             if (i >= 0)
             {
-                var start = description.Substring(0, i);
+                var start = description[..i];
                 var middle = description.Substring(i, blackListWord.Length);
-                var end = description.Substring(i + blackListWord.Length);
+                var end = description[(i + blackListWord.Length)..];
                 Console.Write(start);
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Write(middle);
@@ -412,13 +412,45 @@ public class Filter
     }
 
 
+    private bool ProductStateAvaible(Product product)
+    {
+        bool isSold = product.IsSold ?? false;
+        bool isArchived = product.IsArchived ?? false;
+        bool isDeleted = product.IsDeleted ?? false;
+        bool isBlocked = product.IsBlocked ?? false;
+        //bool isExpired = product.IsExpired ?? false;
+
+        bool valid = !isSold && !isArchived && !isDeleted && !isBlocked /*&& !isExpired*/;
+        if (!valid)
+        {
+            if (isSold) { Console.ForegroundColor = ConsoleColor.Red; Console.Write("[продано]"); Console.ResetColor(); }
+            else { Console.ForegroundColor = ConsoleColor.Green; Console.Write("[не продано]"); Console.ResetColor(); }
+
+            if (isArchived) { Console.ForegroundColor = ConsoleColor.Red; Console.Write("[архив]"); Console.ResetColor(); }
+            else { Console.ForegroundColor = ConsoleColor.Green; Console.Write("[не архив]"); Console.ResetColor(); }
+
+            if (isDeleted) { Console.ForegroundColor = ConsoleColor.Red; Console.Write("[удалено]"); Console.ResetColor(); }
+            else { Console.ForegroundColor = ConsoleColor.Green; Console.Write("[не удалено]"); Console.ResetColor(); }
+
+            if (isBlocked) { Console.ForegroundColor = ConsoleColor.Red; Console.Write("[заблокировано]"); Console.ResetColor(); }
+            else { Console.ForegroundColor = ConsoleColor.Green; Console.Write("[не заблокировано]"); Console.ResetColor(); }
+
+            //if (isExpired) { Console.ForegroundColor = ConsoleColor.Red; Console.Write("[просрочено]"); Console.ResetColor(); }
+            //else { Console.ForegroundColor = ConsoleColor.Green; Console.Write("[не просрочено]"); Console.ResetColor(); }
+
+            Console.WriteLine();
+        }
+        return valid;
+    }
+
     public bool IsValid(Product? product)
     {
         if (product == null) return false;
-        FilterFuncionns.Add(RatingMarksValid);
+        FilterFuncionns.Add(ProductStateAvaible);
+        //FilterFuncionns.Add(RatingMarksValid);
         //FilterFuncionns.Add(NotContainWordsFormBlackListInTitle);
-        FilterFuncionns.Add(NotContainWordsFormBlackListInDescription);
-
+        //FilterFuncionns.Add(NotContainWordsFormBlackListInDescription);
+        
 
         foreach (var check in FilterFuncionns)
         {

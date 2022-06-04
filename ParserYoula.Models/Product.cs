@@ -2,7 +2,7 @@
 {
 
     public string? Id { get; set; }
-    public string? ShortLinkYoula { get; set; }
+    public string? ShortLinkYoula => Id != null ? $"https://youla.ru/p{Id}" : null;
     public string? ShortLinkVk { get; set; }
     public string? Name { get; set; }
     public string? Description { get; set; }
