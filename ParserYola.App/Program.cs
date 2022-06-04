@@ -86,17 +86,32 @@ public class App
 
     private void SaveToDb()
     {
+        //List<User> validUsers = Valid?.Where(p => p?.Owner != null).Select(p => p.Owner!).ToList() ?? new List<User>();
+        //var result = validUsers.Except(context.Users);
+
+
+        //var removed = validUsers.Except(result);
+
+        //Console.WriteLine($"Уже в базе: [{removed.Count()}]\t Уникальных: [{result.Count()}]");
+
+
+        //context.AddRange(result);
+        //int count = context.SaveChanges();
+        List<Product> withoutDublicates = Valid.Where(p => p?.Owner?.Id != null)
+          .GroupBy(p => p.Owner!.Id)
+          .Select(g => g.First())
+          .ToList();
+        Console.WriteLine($"Удалено дублей: [{Valid.Count - withoutDublicates.Count}]");
+        Valid = withoutDublicates;
+
         List<User> validUsers = Valid?.Where(p => p?.Owner != null).Select(p => p.Owner!).ToList() ?? new List<User>();
-        var result = validUsers.Except(context.Users);
+        validUsers = validUsers.Except(context.Users).ToList();
+
+        Console.WriteLine($"Уже в базе: [{Valid!.Count - validUsers.Count}]");
 
 
-        var removed = validUsers.Except(result);
-
-        Console.WriteLine($"Уже в базе: [{removed.Count()}]\t Уникальных: [{result.Count()}]");
-
-
-        context.AddRange(result);
-        int count = context.SaveChanges();
+        context.AddRange(validUsers);
+        context.SaveChanges();
     }
 
     private void Save(object? sender, ConsoleCancelEventArgs e)
