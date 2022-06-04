@@ -447,10 +447,10 @@ public class Filter
     {
         if (product == null) return false;
         FilterFuncionns.Add(ProductStateAvaible);
-        //FilterFuncionns.Add(RatingMarksValid);
-        //FilterFuncionns.Add(NotContainWordsFormBlackListInTitle);
-        //FilterFuncionns.Add(NotContainWordsFormBlackListInDescription);
-        
+        FilterFuncionns.Add(RatingMarksValid);
+        FilterFuncionns.Add(NotContainWordsFormBlackListInTitle);
+        FilterFuncionns.Add(NotContainWordsFormBlackListInDescription);
+
 
         foreach (var check in FilterFuncionns)
         {
