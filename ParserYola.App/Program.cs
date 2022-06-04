@@ -12,12 +12,17 @@ SearchBody searchBody = new SearchBody("https://youla.ru/rostov-na-donu/zhivotny
 App parser = new App(searchBody);
 await parser.Run();
 
+
+
+
+
 public class App
 {
     private readonly CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
     private readonly CancellationToken token;
 
     private readonly DataBaseContext context = new DataBaseContext();
+    private readonly ExcelContext excelContext = new ExcelContext();
 
     private readonly SearchBody searchBody;
 
@@ -86,17 +91,6 @@ public class App
 
     private void SaveToDb()
     {
-        //List<User> validUsers = Valid?.Where(p => p?.Owner != null).Select(p => p.Owner!).ToList() ?? new List<User>();
-        //var result = validUsers.Except(context.Users);
-
-
-        //var removed = validUsers.Except(result);
-
-        //Console.WriteLine($"Уже в базе: [{removed.Count()}]\t Уникальных: [{result.Count()}]");
-
-
-        //context.AddRange(result);
-        //int count = context.SaveChanges();
         List<Product> withoutDublicates = Valid.Where(p => p?.Owner?.Id != null)
           .GroupBy(p => p.Owner!.Id)
           .Select(g => g.First())
@@ -104,13 +98,26 @@ public class App
         Console.WriteLine($"Удалено дублей: [{Valid.Count - withoutDublicates.Count}]");
         Valid = withoutDublicates;
 
-        List<User> validUsers = Valid?.Where(p => p?.Owner != null).Select(p => p.Owner!).ToList() ?? new List<User>();
-        validUsers = validUsers.Except(context.Users).ToList();
+        //List<User> validUsers = Valid?.Where(p => p?.Owner != null).Select(p => p.Owner!).ToList() ?? new List<User>();
+        ////validUsers = validUsers.Except(context.Users).ToList();
+        //List<Product> uniqProducts = Valid!.Except(validUsers.Select(
+        //    x=>new Product() { Owner = new User() { Id = x.Id} }
+        //    )).ToList();
 
-        Console.WriteLine($"Уже в базе: [{Valid!.Count - validUsers.Count}]");
+        List<Product>? uniqProducts = new List<Product>();
 
+        foreach (var product in Valid)
+        {
+            if(!context.Users.Contains(product?.Owner))
+            {
+                if(product!=null)uniqProducts.Add(product);
+            }
+        }
 
-        context.AddRange(validUsers);
+        Console.WriteLine($"Уже в базе: [{Valid!.Count - uniqProducts.Count}]");
+        Valid = uniqProducts;
+
+        context.AddRange(Valid.Where(p=>p?.Owner != null).Select(p=>p.Owner!).ToList());
         context.SaveChanges();
     }
 
@@ -119,6 +126,7 @@ public class App
         CanCanceled = false;
         Console.WriteLine($"Валид: [{Valid.Count}]\t Невалид: [{Invalid.Count}]");
         SaveToDb();
+        excelContext.Save(Valid);
     }
 }
 
