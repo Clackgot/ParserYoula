@@ -9,11 +9,8 @@ using System.Web;
 Console.WriteLine("Ссылка:");
 string link = Console.ReadLine() ?? "";
 SearchBody searchBody = new SearchBody(link);
-
 App parser = new App(searchBody);
 await parser.Run();
-
-
 
 
 
@@ -388,7 +385,7 @@ public class SearchBody
         Category = uri?.Segments?.LastOrDefault();
         PriceFrom = queryParams?.Get("attributes[price][from]");
         PriceTo = queryParams?.Get("attributes[price][to]");
-        SortField = queryParams?.Get("attributes[sort_field]") ?? "DATE_PUBLISHED_DESC";
+        SortField = "DATE_PUBLISHED_DESC";
     }
 }
 

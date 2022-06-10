@@ -10,7 +10,7 @@ namespace ParserYoula.Data
         {
             if (!File.Exists(DbName))
             {
-                Database.EnsureDeleted();
+                //Database.EnsureDeleted();
                 Database.EnsureCreated();
             }
         }
