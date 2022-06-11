@@ -40,7 +40,24 @@ public class App
             searchBody.Page = page;
             try
             {
-                await foreach (var product in YoulaApi.GetProductsAsyncEnumerable(searchBody, token))
+                //await foreach (var product in YoulaApi.GetProductsAsyncEnumerable(searchBody, token))
+                //{
+                //    if (product == null) continue;
+                //    if (filter.IsValid(product))
+                //    {
+                //        Console.ForegroundColor = ConsoleColor.Green;
+                //        Valid.Add(product);
+                //    }
+                //    else
+                //    {
+                //        Console.ForegroundColor = ConsoleColor.Red;
+                //        Invalid.Add(product);
+                //    }
+                //    Console.WriteLine($"{product?.ShortLinkYoula}");
+                //    Console.ResetColor();
+                //    isEmpty = false;
+                //}
+                foreach (var product in await YoulaApi.GetProductsAsync(searchBody, token))
                 {
                     if (product == null) continue;
                     if (filter.IsValid(product))
@@ -178,7 +195,7 @@ public static class YoulaApi
         return products;
     }
 
-    public static async Task<IEnumerable<Product>> GetProductsAsync(SearchBody searchBody)
+    public static async Task<IEnumerable<Product>> GetProductsAsync(SearchBody searchBody, CancellationToken token = default)
     {
         searchBody = searchBody ?? throw new ArgumentNullException(nameof(searchBody));
         HttpRequestMessage request = new HttpRequestMessage()
@@ -216,12 +233,16 @@ public static class YoulaApi
             })?
             .ToList() ?? new List<Product>();
 
+        token.ThrowIfCancellationRequested();
+        //products = products.Select(p => GetProductInfoAsync(p).Result).ToList();
+        //token.ThrowIfCancellationRequested();
+        //products = products.Select(p => GetOwnerInfoAsync(p).Result).ToList();
+        List<Product> tempValids = new List<Product>();
+        List<Product> tempValids2 = new List<Product>();
+        Parallel.ForEach(products, p => tempValids.Add(GetProductInfoAsync(p).Result));
+        Parallel.ForEach(tempValids, p => tempValids2.Add(GetOwnerInfoAsync(p).Result));
 
-        products = products.Select(p => GetProductInfoAsync(p).Result).ToList();
-        //products = products.Select(p => GetOwnerVkInfoAsync(p).Result).ToList();
-        products = products.Select(p => GetOwnerInfoAsync(p).Result).ToList();
-
-        return products;
+        return tempValids;
     }
 
     public static async IAsyncEnumerable<Product> GetProductsAsyncEnumerable(SearchBody searchBody, [EnumeratorCancellation] CancellationToken token = default)
