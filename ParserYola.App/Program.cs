@@ -11,6 +11,7 @@ string link = Console.ReadLine() ?? "";
 SearchBody searchBody = new SearchBody(link);
 App parser = new App(searchBody);
 await parser.Run();
+Console.ReadKey();
 
 
 
