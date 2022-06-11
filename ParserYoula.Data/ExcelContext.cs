@@ -23,12 +23,14 @@ namespace ParserYoula.Data
             sheet.Cells[1, 1].Value = "Ссылка";
             sheet.Cells[1, 2].Value = "Название";
             sheet.Cells[1, 3].Value = "Описание";
+            sheet.Cells[1, 4].Value = "Дата публикации";
 
             for (int i = 0; i < products.Count(); i++)
             {
                 sheet.Cells[2 + i, 1].Value = products.ElementAt(i)?.ShortLinkYoula;
                 sheet.Cells[2 + i, 2].Value = products.ElementAt(i)?.Name;
                 sheet.Cells[2 + i, 3].Value = products.ElementAt(i)?.Description;
+                sheet.Cells[2 + i, 4].Value = products.ElementAt(i)?.PublishDate;
             }
             
             return package.GetAsByteArray();

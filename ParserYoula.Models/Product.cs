@@ -13,6 +13,7 @@
     public bool? IsBlocked { get; set; }
     public bool? IsArchived { get; set; }
     public bool? IsDeleted { get; set; }
+    public bool? IsPromoted { get; set; }
     public User? Owner { get; set; }
     public override bool Equals(object? other)
     {

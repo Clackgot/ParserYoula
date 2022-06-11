@@ -9,9 +9,11 @@ using System.Web;
 Console.WriteLine("Ссылка:");
 string link = Console.ReadLine() ?? "";
 SearchBody searchBody = new SearchBody(link);
+
 App parser = new App(searchBody);
 await parser.Run();
 Console.ReadKey();
+
 
 
 
@@ -156,6 +158,46 @@ public static class YoulaApi
     private static readonly HttpClient client = new HttpClient();
 
 
+    public static async Task<string?> GetCityIdBySlugAsync(string? cytySlug)
+    {
+        if (cytySlug == null) return null;
+        try
+        {
+            HttpRequestMessage request = new HttpRequestMessage()
+            {
+                Method = HttpMethod.Get,
+                RequestUri = new Uri("https://api.youla.io/api/v1/geo/cities"),
+            };
+            request.Headers.Add("Accept-Language", "ru-RU,ru;q=0.9");
+            request.Headers.Add("Connection", "keep-alive");
+            request.Headers.Add("Sec-Fetch-Dest", "empty");
+            request.Headers.Add("Sec-Fetch-Mode", "cors");
+            request.Headers.Add("Sec-Fetch-Site", "cross-site");
+            request.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.62 Safari/537.36");
+            request.Headers.Add("accept", "*/*");
+            request.Headers.Add("appId", "web/3");
+            request.Headers.Add("sec-ch-ua", "\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"102\", \"Google Chrome\";v=\"102\"");
+            request.Headers.Add("sec-ch-ua-mobile", "?0");
+            request.Headers.Add("sec-ch-ua-platform", "\"Windows\"");
+            request.Headers.Add("x-app-id", "web/3");
+            request.Headers.Add("x-youla-splits", "8a=5|8b=7|8c=0|8m=0|8v=0|8z=0|16a=0|16b=0|64a=6|64b=0|100a=73|100b=47|100c=0|100d=0|100m=0");
+
+
+            HttpResponseMessage? response = await client.SendAsync(request);
+            string? jsonString = await response.Content.ReadAsStringAsync();
+
+            JToken? json = JToken.Parse(jsonString)["data"];
+            return json.FirstOrDefault(x => x["slug"]?.ToString() == cytySlug)?["id"]?.ToString();
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex);
+            Console.WriteLine($"Не удалось получить информацию о городе {cytySlug}. Будет выбрана вся Россия.");
+            return null;
+        }
+    }
+
+
     public static async Task<IEnumerable<Product>> GetClearProductsAsync(SearchBody searchBody)
     {
         searchBody = searchBody ?? throw new ArgumentNullException(nameof(searchBody));
@@ -219,7 +261,7 @@ public static class YoulaApi
         request.Headers.Add("x-app-id", "web/3");
         request.Headers.Add("x-youla-splits", "8a=5|8b=7|8c=0|8m=0|8v=0|8z=0|16a=0|16b=0|64a=6|64b=0|100a=73|100b=47|100c=0|100d=0|100m=0");
 
-        var body = $"{{\"operationName\":\"catalogProductsBoard\",\"variables\":{{\"sort\":\"{searchBody.SortField}\",\"attributes\":[{{\"slug\":\"price\",\"value\":null,\"from\":{searchBody.PriceFrom},\"to\":{searchBody.PriceTo}}},{{\"slug\":\"categories\",\"value\":[\"{searchBody.Category}\"],\"from\":null,\"to\":null}}],\"datePublished\":null,\"location\":{{\"latitude\":null,\"longitude\":null,\"city\":null,\"distanceMax\":null}},\"search\":\"\",\"cursor\":\"{{\\\"page\\\":{searchBody.Page - 1},\\\"totalProductsCount\\\":0,\\\"dateUpdatedTo\\\":1653932782}}\"}},\"extensions\":{{\"persistedQuery\":{{\"version\":1,\"sha256Hash\":\"6e7275a709ca5eb1df17abfb9d5d68212ad910dd711d55446ed6fa59557e2602\"}}}}}}";
+        var body = $"{{\"operationName\":\"catalogProductsBoard\",\"variables\":{{\"sort\":\"{searchBody.SortField}\",\"attributes\":[{{\"slug\":\"price\",\"value\":null,\"from\":{searchBody.PriceFrom ?? "null"},\"to\":{searchBody.PriceTo ?? "null"}}},{{\"slug\":\"categories\",\"value\":[\"{searchBody.Category}\"],\"from\":null,\"to\":null}}],\"datePublished\":null,\"location\":{{\"latitude\":null,\"longitude\":null,\"city\":{(searchBody.CityId != null ? $"\"{searchBody.CityId}\"" : "null")},\"distanceMax\":null}},\"search\":\"\",\"cursor\":\"{{\\\"page\\\":{searchBody.Page - 1},\\\"totalProductsCount\\\":0,\\\"dateUpdatedTo\\\":1653932782}}\"}},\"extensions\":{{\"persistedQuery\":{{\"version\":1,\"sha256Hash\":\"6e7275a709ca5eb1df17abfb9d5d68212ad910dd711d55446ed6fa59557e2602\"}}}}}}";
         request.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
         HttpResponseMessage? response = await client.SendAsync(request);
         string? jsonString = await response.Content.ReadAsStringAsync();
@@ -231,9 +273,10 @@ public static class YoulaApi
             {
                 Id = x["id"]?.ToString(),
                 Name = x["name"]?.ToString(),
+                IsPromoted = BoolParse(x["isPromoted"]?.ToString()),
             })?
             .ToList() ?? new List<Product>();
-
+        products = products.Where(p => p.IsPromoted != true).ToList();
         token.ThrowIfCancellationRequested();
         //products = products.Select(p => GetProductInfoAsync(p).Result).ToList();
         //token.ThrowIfCancellationRequested();
@@ -281,8 +324,14 @@ public static class YoulaApi
             {
                 Id = x["id"]?.ToString(),
                 Name = x["name"]?.ToString(),
+                IsPromoted = BoolParse(x["isPromoted"]?.ToString()),
             })?
             .ToList() ?? new List<Product>();
+
+        int count = products.Count;
+        products = products.Where(p => p.IsPromoted != true).ToList();
+        Console.WriteLine($"Удалено: {count - products.Count}");
+
         token.ThrowIfCancellationRequested();
         foreach (var product in products)
         {
@@ -400,10 +449,14 @@ public class SearchBody
     public string? PriceTo { get; set; }
     public string? Category { get; set; }
     public string? SortField { get; set; }
+    private string? CitySlug { get; set; }
+    public string? CityId { get; set; }
     public SearchBody(string link)
     {
         Uri uri = new Uri(link);
         NameValueCollection queryParams = HttpUtility.ParseQueryString(uri.Query);
+        CitySlug = new string(uri?.Segments?.Skip(1).FirstOrDefault()?.SkipLast(1)?.ToArray() ?? null);
+        CityId = YoulaApi.GetCityIdBySlugAsync(CitySlug).Result ?? null;
         Category = uri?.Segments?.LastOrDefault();
         PriceFrom = queryParams?.Get("attributes[price][from]");
         PriceTo = queryParams?.Get("attributes[price][to]");
