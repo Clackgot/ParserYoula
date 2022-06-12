@@ -1,4 +1,5 @@
 ﻿using AngleSharp.Html.Parser;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ParserYoula.Data;
 using System.Collections.Specialized;
@@ -89,6 +90,9 @@ public class App
             }
             if (isEmpty) break;
         }
+
+
+        Save(this, null);
     }
 
 
@@ -98,8 +102,25 @@ public class App
         searchBody = search;
         token = cancelTokenSource.Token;
         Console.CancelKeyPress += CancelToken;
-        //Console.CancelKeyPress += Save;
 
+        string filterPath = "filter.json";
+        try
+        {
+            filter = JsonConvert.DeserializeObject<Filter>(File.ReadAllText(filterPath))!;
+        }
+        catch
+        {
+            filter = new Filter();
+            try
+            {
+                File.WriteAllText(filterPath, JsonConvert.SerializeObject(filter));
+            }
+            catch
+            {
+
+            }
+            //Console.CancelKeyPress += Save;
+        }
     }
 
     private void CancelToken(object? sender, ConsoleCancelEventArgs e)
@@ -499,7 +520,6 @@ public class Filter
     /// Исключить слова из текста
     /// </summary>
     public List<string> ExcludeWordsFromDescription { get; set; } = new List<string>() { "кошка", "сено" };
-
     private bool RatingMarksValid(Product product)
     {
         int? marksCount = product?.Owner?.RatingMarkCount;
@@ -529,10 +549,6 @@ public class Filter
                 Console.WriteLine(end);
                 return false;
             }
-            else
-            {
-                return true;
-            }
         }
         return true;
     }
@@ -556,10 +572,6 @@ public class Filter
                 Console.ResetColor();
                 Console.WriteLine(end);
                 return false;
-            }
-            else
-            {
-                return true;
             }
         }
         return true;
@@ -599,10 +611,10 @@ public class Filter
     public bool IsValid(Product? product)
     {
         if (product == null) return false;
-        FilterFuncionns.Add(ProductStateAvaible);
-        FilterFuncionns.Add(RatingMarksValid);
         FilterFuncionns.Add(NotContainWordsFormBlackListInTitle);
         FilterFuncionns.Add(NotContainWordsFormBlackListInDescription);
+        FilterFuncionns.Add(ProductStateAvaible);
+        FilterFuncionns.Add(RatingMarksValid);
 
 
         foreach (var check in FilterFuncionns)
@@ -615,4 +627,5 @@ public class Filter
 
         return true;
     }
+
 }
