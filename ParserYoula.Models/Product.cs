@@ -15,6 +15,9 @@
     public bool? IsDeleted { get; set; }
     public bool? IsPromoted { get; set; }
     public User? Owner { get; set; }
+    public string? UpdateDate { get; set; }
+    public string? CreateDate { get; set; }
+
     public override bool Equals(object? other)
     {
         //Последовательность проверки должна быть именно такой.

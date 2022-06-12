@@ -17,6 +17,7 @@ Console.ReadKey();
 
 
 
+
 public class App
 {
     private readonly CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
@@ -373,6 +374,9 @@ public static class YoulaApi
         product.IsArchived = BoolParse(productToken?["is_archived"]?.ToString());
         product.IsExpired = BoolParse(productToken?["is_expiring"]?.ToString());
         product.Description = productToken?["description"]?.ToString();
+        product.CreateDate = productToken?["date_created"]?.ToString();
+        product.UpdateDate = productToken?["date_updated"]?.ToString();
+        product.PublishDate = productToken?["date_published"]?.ToString();
 
 
         product.Owner = productToken?["owner"] == null ? null : new User()
