@@ -83,6 +83,7 @@ public class App
             catch (OperationCanceledException ex)
             {
                 if(CanCanceled) Save(this, null);
+                return;
             }
             catch (Exception ex)
             {
