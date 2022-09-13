@@ -28,7 +28,7 @@ namespace ParserYoula.Data
             sheet.DefaultColWidth = 80;
             var firstCol = sheet.Columns.FirstOrDefault();
             var lastCol = sheet.Columns.LastOrDefault();
-            if(firstCol != null) firstCol.Width = 40.0f;
+            if(firstCol != null) firstCol.Width = 41.0f;
             if(lastCol != null) lastCol.Width = 12.0f;
             for (int i = 0; i < products.Count(); i++)
             {
