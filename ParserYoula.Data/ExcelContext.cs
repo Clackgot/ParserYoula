@@ -23,29 +23,21 @@ namespace ParserYoula.Data
             //sheet.Cells["C1"].Value = "Описание";
             sheet.Cells[1, 1].Value = "Ссылка";
             sheet.Cells[1, 2].Value = "Название";
-
             sheet.Cells[1, 3].Value = "Создано";
-            sheet.Cells[1, 4].Value = "Обновлено";
-            sheet.Cells[1, 5].Value = "Описание";
             sheet.Rows.Height = 15;
-            sheet.DefaultColWidth = 30;
+            sheet.DefaultColWidth = 80;
+            var firstCol = sheet.Columns.FirstOrDefault();
+            var lastCol = sheet.Columns.LastOrDefault();
+            if(firstCol != null) firstCol.Width = 40.0f;
+            if(lastCol != null) lastCol.Width = 12.0f;
             for (int i = 0; i < products.Count(); i++)
             {
-
                 sheet.Cells[2 + i, 1].Value = products.ElementAt(i)?.ShortLinkYoula;
                 sheet.Cells[2 + i, 2].Value = products.ElementAt(i)?.Name;
 
-
-
                 double.TryParse(products.ElementAt(i)?.CreateDate, out double createDate);
-                double.TryParse(products.ElementAt(i)?.UpdateDate, out double updateDate);
 
                 sheet.Cells[2 + i, 3].Value = UnixTimeStampToDateTime(createDate)?.ToString("dd.MM.yyyy");
-                sheet.Cells[2 + i, 4].Value = UnixTimeStampToDateTime(updateDate)?.ToString("dd.MM.yyyy");
-                sheet.Cells[2 + i, 5].Value = products.ElementAt(i)?.Description;
-                //sheet.Cells[2 + i, 5].Style.WrapText = false;
-                sheet.Cells[2 + i, 5].Style.ShrinkToFit = true;
-                sheet.Cells[2 + i, 5].Style.Indent = 0;
             }
             
             return package.GetAsByteArray();
