@@ -12,10 +12,8 @@ string link = Console.ReadLine() ?? "";
 SearchBody searchBody = new SearchBody(link);
 
 App parser = new App(searchBody);
-await parser.Run();
+await parser.RunByTimezones();
 Console.ReadKey();
-
-
 
 
 
@@ -82,7 +80,7 @@ public class App
             }
             catch (OperationCanceledException ex)
             {
-                if(CanCanceled) Save(this, null);
+                if (CanCanceled) Save(this, null);
                 return;
             }
             catch (Exception ex)
@@ -96,6 +94,72 @@ public class App
         Save(this, null);
     }
 
+
+    public async Task RunByTimezones()
+    {
+        var citiesTokens = await YoulaApi.GetCitiesByTimezone(new List<string> { "+03:00", "+04:00" });
+        var rnd = new Random();
+        var cities = citiesTokens.OrderBy(item => rnd.Next());
+        foreach (var city in cities)
+        {
+            Console.WriteLine($"Начало поиска по городу {city["name"]} с часовым поясом {city["timezone"]}");
+            searchBody.CityId = city["id"]?.ToString();
+            for (int page = 0; page < int.MaxValue; page++)
+            {
+                bool isEmpty = true;
+                searchBody.Page = page;
+                try
+                {
+                    //await foreach (var product in YoulaApi.GetProductsAsyncEnumerable(searchBody, token))
+                    //{
+                    //    if (product == null) continue;
+                    //    if (filter.IsValid(product))
+                    //    {
+                    //        Console.ForegroundColor = ConsoleColor.Green;
+                    //        Valid.Add(product);
+                    //    }
+                    //    else
+                    //    {
+                    //        Console.ForegroundColor = ConsoleColor.Red;
+                    //        Invalid.Add(product);
+                    //    }
+                    //    Console.WriteLine($"{product?.ShortLinkYoula}");
+                    //    Console.ResetColor();
+                    //    isEmpty = false;
+                    //}
+                    foreach (var product in await YoulaApi.GetProductsAsync(searchBody, token))
+                    {
+                        if (product == null) continue;
+                        if (filter.IsValid(product))
+                        {
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Valid.Add(product);
+                        }
+                        else
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Invalid.Add(product);
+                        }
+                        Console.WriteLine($"{product?.ShortLinkYoula}");
+                        Console.ResetColor();
+                        isEmpty = false;
+                    }
+                }
+                catch (OperationCanceledException ex)
+                {
+                    if (CanCanceled) Save(this, null);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+                if (isEmpty) break;
+            }
+        }
+
+        Save(this, null);
+    }
 
 
     public App(SearchBody search)
@@ -149,16 +213,16 @@ public class App
 
         foreach (var product in Valid)
         {
-            if(!context.Users.Contains(product?.Owner))
+            if (!context.Users.Contains(product?.Owner))
             {
-                if(product!=null)uniqProducts.Add(product);
+                if (product != null) uniqProducts.Add(product);
             }
         }
 
         Console.WriteLine($"Уже в базе: [{Valid!.Count - uniqProducts.Count}]");
         Valid = uniqProducts;
 
-        context.AddRange(Valid.Where(p=>p?.Owner != null).Select(p=>p.Owner!));
+        context.AddRange(Valid.Where(p => p?.Owner != null).Select(p => p.Owner!));
         int addedCount = context.SaveChanges();
         Console.WriteLine($"Записано в базу: [{addedCount}]");
     }
@@ -180,6 +244,34 @@ public static class YoulaApi
     private static readonly HtmlParser parser = new HtmlParser();
     private static readonly HttpClient client = new HttpClient();
 
+    public static async Task<string?> GetTimeZoneByCityId(string? cityId)
+    {
+        JObject citiesWithTimezone = await GetCitiesWithTimezone();
+        return citiesWithTimezone["data"]?.FirstOrDefault(x => x["id"]?.ToString() == cityId)?["timezone"]?.ToString();
+    }
+
+    public static async Task<List<JToken>> GetCitiesByTimezone(List<string> timezones)
+    {
+        JObject citiesWithTimezone = await GetCitiesWithTimezone();
+        List<JToken> cities = new List<JToken>();
+        //return citiesWithTimezone["data"]?.FirstOrDefault(x => x["id"]?.ToString() == cityId)?["timezone"]?.ToString();
+        foreach (var timezone in timezones)
+        {
+            foreach (var city in citiesWithTimezone["data"]?.Where(city => city["timezone"]?.ToString() == timezone))
+            {
+                cities.Add(city);
+            }
+        }
+        return cities;
+    }
+
+
+    public static async Task<JObject> GetCitiesWithTimezone()
+    {
+        var jsonText = await File.ReadAllTextAsync("cities.json");
+        var citiesWithTimezone = JObject.Parse(jsonText);
+        return citiesWithTimezone;
+    }
 
     public static async Task<string?> GetCityIdBySlugAsync(string? cytySlug)
     {
@@ -210,9 +302,9 @@ public static class YoulaApi
             string? jsonString = await response.Content.ReadAsStringAsync();
 
             JToken? json = JToken.Parse(jsonString)["data"];
-            return json.FirstOrDefault(x => x["slug"]?.ToString() == cytySlug)?["id"]?.ToString();
+            return json?.FirstOrDefault(x => x["slug"]?.ToString() == cytySlug)?["id"]?.ToString();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Console.WriteLine(ex);
             Console.WriteLine($"Не удалось получить информацию о городе {cytySlug}. Будет выбрана вся Россия.");
@@ -284,7 +376,7 @@ public static class YoulaApi
         request.Headers.Add("x-app-id", "web/3");
         request.Headers.Add("x-youla-splits", "8a=5|8b=7|8c=0|8m=0|8v=0|8z=0|16a=0|16b=0|64a=6|64b=0|100a=73|100b=47|100c=0|100d=0|100m=0");
 
-        var body = $"{{\"operationName\":\"catalogProductsBoard\",\"variables\":{{\"sort\":\"{searchBody.SortField}\",\"attributes\":[{{\"slug\":\"price\",\"value\":null,\"from\":{searchBody.PriceFrom ?? "null"},\"to\":{searchBody.PriceTo ?? "null"}}},{{\"slug\":\"categories\",\"value\":[\"{searchBody.Category}\"],\"from\":null,\"to\":null}}],\"datePublished\":{{\"to\":{DateTimeOffset.Now.ToUnixTimeSeconds()},\"from\":{DateTimeOffset.Now.ToUnixTimeSeconds()-86400}}},\"location\":{{\"latitude\":null,\"longitude\":null,\"city\":{(searchBody.CityId != null ? $"\"{searchBody.CityId}\"" : "null")},\"distanceMax\":null}},\"search\":\"\",\"cursor\":\"{{\\\"page\\\":{searchBody.Page - 1},\\\"totalProductsCount\\\":0,\\\"dateUpdatedTo\\\":1653932782}}\"}},\"extensions\":{{\"persistedQuery\":{{\"version\":1,\"sha256Hash\":\"6e7275a709ca5eb1df17abfb9d5d68212ad910dd711d55446ed6fa59557e2602\"}}}}}}";
+        var body = $"{{\"operationName\":\"catalogProductsBoard\",\"variables\":{{\"sort\":\"{searchBody.SortField}\",\"attributes\":[{{\"slug\":\"price\",\"value\":null,\"from\":{searchBody.PriceFrom ?? "null"},\"to\":{searchBody.PriceTo ?? "null"}}},{{\"slug\":\"categories\",\"value\":[\"{searchBody.Category}\"],\"from\":null,\"to\":null}}],\"datePublished\":{{\"to\":{DateTimeOffset.Now.ToUnixTimeSeconds()},\"from\":{DateTimeOffset.Now.ToUnixTimeSeconds() - 86400}}},\"location\":{{\"latitude\":null,\"longitude\":null,\"city\":{(searchBody.CityId != null ? $"\"{searchBody.CityId}\"" : "null")},\"distanceMax\":null}},\"search\":\"\",\"cursor\":\"{{\\\"page\\\":{searchBody.Page - 1},\\\"totalProductsCount\\\":0,\\\"dateUpdatedTo\\\":1653932782}}\"}},\"extensions\":{{\"persistedQuery\":{{\"version\":1,\"sha256Hash\":\"6e7275a709ca5eb1df17abfb9d5d68212ad910dd711d55446ed6fa59557e2602\"}}}}}}";
         request.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
         HttpResponseMessage? response = await client.SendAsync(request);
         string? jsonString = await response.Content.ReadAsStringAsync();

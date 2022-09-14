@@ -17,4 +17,10 @@
     <ProjectReference Include="..\ParserYoula.Models\ParserYoula.Models.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="cities.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
