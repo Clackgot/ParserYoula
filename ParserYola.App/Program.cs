@@ -17,6 +17,10 @@ Console.ReadKey();
 
 
 
+
+
+
+
 public class App
 {
     private readonly CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
@@ -97,7 +101,9 @@ public class App
 
     public async Task RunByTimezones()
     {
-        var citiesTokens = await YoulaApi.GetCitiesByTimezone(new List<string> { "+03:00", "+04:00" });
+
+        List<string> timezones = JToken.Parse(File.ReadAllText("timezones.json")).ToList().Where(x => x != null).Select(x=>x.ToString()).ToList() ?? new List<string>();
+        var citiesTokens = await YoulaApi.GetCitiesByTimezone(timezones);
         var rnd = new Random();
         var cities = citiesTokens.OrderBy(item => rnd.Next());
         foreach (var city in cities)
@@ -504,7 +510,6 @@ public static class YoulaApi
             SystemCallEnabled = BoolParse(productToken?["owner"]?["settings"]?["call_settings"]?["system_call_enabled"]?.ToString()),
         };
 
-
         return product;
 
     }
@@ -704,6 +709,7 @@ public class Filter
     public bool IsValid(Product? product)
     {
         if (product == null) return false;
+        if (product?.Owner?.IsShop == true) return false;
         FilterFuncionns.Add(NotContainWordsFormBlackListInTitle);
         FilterFuncionns.Add(NotContainWordsFormBlackListInDescription);
         FilterFuncionns.Add(ProductStateAvaible);
