@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ParserYoula.Data;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Web;
 
@@ -31,6 +32,9 @@ public class App
 
     private readonly SearchBody searchBody;
 
+
+    private readonly Stopwatch stopWatch = new Stopwatch();
+    
     public List<Product> Parsed { get; set; } = new List<Product>();
     public List<Product> Valid { get; set; } = new List<Product>();
     public List<Product> Invalid { get; set; } = new List<Product>();
@@ -101,13 +105,13 @@ public class App
 
     public async Task RunByTimezones()
     {
-
         List<string> timezones = JToken.Parse(File.ReadAllText("timezones.json")).ToList().Where(x => x != null).Select(x=>x.ToString()).ToList() ?? new List<string>();
         var citiesTokens = await YoulaApi.GetCitiesByTimezone(timezones);
         var rnd = new Random();
         var cities = citiesTokens.OrderBy(item => rnd.Next());
         foreach (var city in cities)
         {
+            stopWatch.Start();
             Console.WriteLine($"Начало поиска по городу {city["name"]} с часовым поясом {city["timezone"]}");
             searchBody.CityId = city["id"]?.ToString();
             for (int page = 0; page < int.MaxValue; page++)
@@ -163,7 +167,6 @@ public class App
                 if (isEmpty) break;
             }
         }
-
         Save(this, null);
     }
 
@@ -235,6 +238,17 @@ public class App
 
     private void Save(object? sender, ConsoleCancelEventArgs e)
     {
+        stopWatch.Stop();
+        // Get the elapsed time as a TimeSpan value.
+        TimeSpan ts = stopWatch.Elapsed;
+
+        // Format and display the TimeSpan value.
+        string elapsedTime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}",
+            ts.Hours, ts.Minutes, ts.Seconds,
+            ts.Milliseconds / 10);
+        Console.WriteLine("Выполнено за " + elapsedTime);
+
+
         CanCanceled = false;
         Console.WriteLine($"Валид: [{Valid.Count}]");
         Console.WriteLine($"Невалид: [{Invalid.Count}]");
